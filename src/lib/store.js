@@ -2,6 +2,7 @@
  * Lightweight reactive store using localStorage + custom event bus.
  * Each slice lives in localStorage and notifies subscribers on change.
  */
+import { schedulePush } from './sync'
 
 const listeners = {}
 
@@ -49,6 +50,7 @@ export function saveSettings(updates) {
   const next = { ...current, ...updates }
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(next))
   notify('settings')
+  schedulePush()
   return next
 }
 
@@ -65,6 +67,7 @@ export function getList(key) {
 export function saveList(key, data) {
   localStorage.setItem('hub_' + key, JSON.stringify(data))
   notify(key)
+  schedulePush()
 }
 
 export function addItem(key, item) {

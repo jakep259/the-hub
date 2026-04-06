@@ -110,21 +110,25 @@ export async function syncFromSupabase() {
   } catch {}
 }
 
+// ─── Debounced push — called after every data save ───────────────────────────
+let _pushTimer = null
+export function schedulePush() {
+  if (!isConfigured()) return
+  clearTimeout(_pushTimer)
+  _pushTimer = setTimeout(() => syncToSupabase(), 2000)
+}
+
 // ─── Auto-sync on app start (non-blocking) ────────────────────────────────────
 export function initSync() {
   if (!isConfigured()) return
 
-  // Pull fresh data in background after 2s
-  setTimeout(async () => {
-    await syncFromSupabase()
-  }, 2000)
+  // Pull fresh data immediately on load
+  syncFromSupabase()
 
-  // Push local changes every 5 minutes
-  setInterval(async () => {
-    await syncToSupabase()
-  }, 5 * 60 * 1000)
+  // Push local changes every 60 seconds as a safety net
+  setInterval(() => syncToSupabase(), 60 * 1000)
 
-  // Push on page visibility change (tab regains focus)
+  // Push when leaving the app, pull when returning
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
       syncFromSupabase()
