@@ -38,9 +38,9 @@ export async function syncToSupabase() {
   if (!isConfigured()) return
 
   const tables = [
-    'bookies', 'bets', 'offers', 'income_entries',
+    'bookies', 'open_bets', 'offers', 'income_entries',
     'expenses', 'daily_tasks', 'task_completions',
-    'weight_log', 'calorie_log',
+    'weight_log', 'calorie_log', 'consistency_log',
   ]
 
   for (const table of tables) {
@@ -79,9 +79,9 @@ export async function syncFromSupabase() {
   if (!isConfigured()) return
 
   const tables = [
-    'bookies', 'bets', 'offers', 'income_entries',
+    'bookies', 'open_bets', 'offers', 'income_entries',
     'expenses', 'daily_tasks', 'task_completions',
-    'weight_log', 'calorie_log',
+    'weight_log', 'calorie_log', 'consistency_log',
   ]
 
   for (const table of tables) {
