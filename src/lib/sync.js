@@ -26,7 +26,7 @@ async function pullTable(table, cacheKey, transform) {
     const { data, error } = await supabase.from(table).select('*')
     if (!error && data) {
       const transformed = transform ? data.map(transform) : data
-      cacheSet(cacheKey, transformed)
+      localStorage.setItem('hub_' + cacheKey, JSON.stringify(transformed))
       return transformed
     }
   } catch {}
