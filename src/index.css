@@ -1,0 +1,227 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+    box-sizing: border-box;
+  }
+  html {
+    min-height: 100vh;
+  }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    background-color: #f9fafb;
+    color: #111827;
+  }
+  html.dark body {
+    background-color: #050D1A;
+    color: #f3f4f6;
+  }
+}
+
+/* ── Card ─────────────────────────────────────────────────────────────────── */
+.card {
+  background-color: #ffffff;
+  border-radius: 1rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.05);
+  border: 1px solid rgba(0,0,0,0.06);
+}
+html.dark .card {
+  background-color: #0D1F35;
+  border-color: rgba(255,255,255,0.08);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+/* ── Card elevated (Apple-style) ──────────────────────────────────────────── */
+.card-elevated {
+  background-color: #ffffff;
+  border-radius: 1.25rem;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04);
+  border: 1px solid rgba(0,0,0,0.05);
+}
+html.dark .card-elevated {
+  background-color: #122240;
+  border-color: rgba(255,255,255,0.07);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+}
+
+/* ── Buttons ──────────────────────────────────────────────────────────────── */
+.btn-primary {
+  background-color: #0D1F35;
+  color: #fff;
+  font-weight: 600;
+  padding: 0.6rem 1rem;
+  border-radius: 0.75rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-primary:hover { background-color: #1A3A5C; }
+.btn-primary:active { transform: scale(0.97); }
+html.dark .btn-primary { background-color: #C9A96E; color: #0D1F35; }
+html.dark .btn-primary:hover { background-color: #DEB97E; }
+
+.btn-secondary {
+  background-color: #C9A96E;
+  color: #0D1F35;
+  font-weight: 600;
+  padding: 0.6rem 1rem;
+  border-radius: 0.75rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-secondary:hover { background-color: #b8924f; }
+.btn-secondary:active { transform: scale(0.97); }
+
+.btn-ghost {
+  background-color: transparent;
+  color: #4b5563;
+  font-weight: 500;
+  padding: 0.6rem 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid #e5e7eb;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-ghost:hover { background-color: #f9fafb; }
+.btn-ghost:active { transform: scale(0.97); }
+html.dark .btn-ghost { color: #d1d5db; border-color: rgba(255,255,255,0.15); }
+html.dark .btn-ghost:hover { background-color: rgba(255,255,255,0.07); }
+
+/* ── Inputs & Selects ─────────────────────────────────────────────────────── */
+.input {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.75rem;
+  border: 1.5px solid #e5e7eb;
+  background-color: #fff;
+  color: #111827;
+  font-size: 0.875rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.input:focus {
+  border-color: #C9A96E;
+  box-shadow: 0 0 0 3px rgba(201,169,110,0.15);
+}
+html.dark .input {
+  background-color: #091629;
+  border-color: rgba(255,255,255,0.12);
+  color: #f3f4f6;
+}
+html.dark .input:focus {
+  border-color: #C9A96E;
+  box-shadow: 0 0 0 3px rgba(201,169,110,0.2);
+}
+html.dark .input::placeholder { color: #6b7280; }
+
+select.input {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.5rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+  padding-right: 2.5rem;
+  cursor: pointer;
+}
+
+/* ── Labels ───────────────────────────────────────────────────────────────── */
+.label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #9ca3af;
+  margin-bottom: 0.25rem;
+}
+html.dark .label { color: #6b7280; }
+
+/* ── Section title ────────────────────────────────────────────────────────── */
+.section-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #0D1F35;
+}
+html.dark .section-title { color: #f9fafb; }
+
+/* ── Toggle switch ────────────────────────────────────────────────────────── */
+.toggle {
+  position: relative;
+  width: 48px;
+  height: 26px;
+  border-radius: 13px;
+  background-color: #d1d5db;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  flex-shrink: 0;
+}
+.toggle.on { background-color: #C9A96E; }
+.toggle::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  transition: transform 0.2s;
+}
+.toggle.on::after { transform: translateX(22px); }
+
+/* ── Safe area ────────────────────────────────────────────────────────────── */
+.pb-safe { padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px)); }
+
+/* ── Scrollbar hide ───────────────────────────────────────────────────────── */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ── Recharts ─────────────────────────────────────────────────────────────── */
+.recharts-tooltip-wrapper { outline: none !important; }
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line { stroke: #f0f0f0; }
+html.dark .recharts-cartesian-grid-horizontal line,
+html.dark .recharts-cartesian-grid-vertical line { stroke: rgba(255,255,255,0.06); }
+html.dark .recharts-text { fill: #9ca3af !important; }
+
+/* ── Apple-style glass card ───────────────────────────────────────────────── */
+.card-glass {
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 1.25rem;
+  border: 1px solid rgba(255,255,255,0.5);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+}
+html.dark .card-glass {
+  background: rgba(13,31,53,0.85);
+  border-color: rgba(255,255,255,0.1);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+
+/* ── Number fade animation ────────────────────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-up { animation: fadeUp 0.4s ease-out forwards; }
