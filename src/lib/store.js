@@ -61,7 +61,13 @@ export function saveSettings(updates) {
 export function getList(key) {
   try {
     const raw = localStorage.getItem('hub_' + key)
-    return raw ? JSON.parse(raw) : null
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    // Handle legacy cacheSet wrapper format {data, ts} left by old sync code
+    if (parsed && !Array.isArray(parsed) && Array.isArray(parsed.data)) {
+      return parsed.data
+    }
+    return parsed
   } catch {
     return null
   }
