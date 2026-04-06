@@ -1,8 +1,8 @@
 import { useState, useEffect, createContext, useContext } from 'react'
 import { BrowserRouter, Routes, Route, NavLink, useLocation } from 'react-router-dom'
 import { LayoutDashboard, TrendingUp, Target, Settings, BookOpen } from 'lucide-react'
-import { getSettings, saveSettings, initBookies } from './lib/store'
-import { initSync } from './lib/sync'
+import { getSettings, saveSettings, initBookies, registerSyncCallback } from './lib/store'
+import { initSync, schedulePush } from './lib/sync'
 
 import Dashboard from './pages/Dashboard'
 import MatchedBetting from './pages/MatchedBetting'
@@ -133,6 +133,7 @@ export default function App() {
   useEffect(() => {
     applyDark(darkMode)
     initBookies()
+    registerSyncCallback(schedulePush)
     initSync()
   }, [])
 
