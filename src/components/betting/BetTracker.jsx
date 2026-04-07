@@ -408,30 +408,38 @@ export default function BetTracker() {
     saveList('open_bets', next)
     setBets(next)
 
-    // Also log to offers/income if profit exists
+    // Also log to offers — only if not already logged for this bet
     if (profit != null) {
       const bet = next.find(b => b.id === id)
-      const offerEntry = {
-        id: genId(),
-        bookie_id: bet?.bookie_id || '',
-        offer_type: bet?.bet_type || 'Back/Lay',
-        status: 'Completed',
-        actual_profit: profit,
-        expected_profit: bet?.profit_guaranteed || null,
-        date: bet?.date || format(new Date(), 'yyyy-MM-dd'),
-        notes: `Settled from Bet Tracker: ${outcomeLabels[outcome] || outcome}`,
-      }
       const existingOffers = getList('offers') || []
-      saveList('offers', [...existingOffers, offerEntry])
+      if (!existingOffers.some(o => o.bet_id === id)) {
+        const offerEntry = {
+          id: genId(),
+          bet_id: id,
+          bookie_id: bet?.bookie_id || '',
+          offer_type: bet?.bet_type || 'Back/Lay',
+          status: 'Completed',
+          actual_profit: profit,
+          expected_profit: bet?.profit_guaranteed || null,
+          date: bet?.date || format(new Date(), 'yyyy-MM-dd'),
+          notes: `Settled from Bet Tracker: ${outcomeLabels[outcome] || outcome}`,
+        }
+        saveList('offers', [...existingOffers, offerEntry])
+      }
     }
   }
 
   const outcomeLabels = { guaranteed: 'Guaranteed', exchange_wins: 'Exchange Won', bookie_wins: 'Bookie Won' }
 
-  function deleteBet(id) {
+  async function deleteBet(id) {
     const next = (getList('open_bets') || []).filter(b => b.id !== id)
     saveList('open_bets', next)
     setBets(next)
+    // Delete from Supabase so it doesn't return on the next pull
+    try {
+      const { supabase } = await import('../../lib/supabase')
+      if (supabase) await supabase.from('open_bets').delete().eq('id', id)
+    } catch {}
   }
 
   const filtered = bets.filter(b =>

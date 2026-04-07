@@ -31,8 +31,15 @@ async function pullTable(table, cacheKey, transform) {
       const localRaw = localStorage.getItem('hub_' + cacheKey)
       const local = localRaw ? JSON.parse(localRaw) : []
       const remoteIds = new Set(transformed.map(r => r.id))
+      const localMap = new Map(Array.isArray(local) ? local.map(r => [r.id, r]) : [])
+      // Keep local version if it's already settled but remote hasn't caught up yet
+      const mergedRemote = transformed.map(remoteRow => {
+        const localRow = localMap.get(remoteRow.id)
+        if (localRow?.status === 'settled' && remoteRow.status !== 'settled') return localRow
+        return remoteRow
+      })
       const localOnly = Array.isArray(local) ? local.filter(r => !remoteIds.has(r.id)) : []
-      const merged = [...transformed, ...localOnly]
+      const merged = [...mergedRemote, ...localOnly]
       localStorage.setItem('hub_' + cacheKey, JSON.stringify(merged))
       notify(cacheKey)
       // Push any local-only records immediately so they don't get lost
