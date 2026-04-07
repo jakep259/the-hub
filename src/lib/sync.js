@@ -153,22 +153,56 @@ export function schedulePush() {
   _pushTimer = setTimeout(() => syncToSupabase(), 300)
 }
 
-// ─── Auto-sync on app start (non-blocking) ────────────────────────────────────
-export function initSync() {
+// ─── Quick poll: only settings (1 request every 2s instead of 11) ────────────
+async function quickPollSettings() {
   if (!isConfigured()) return
+  try {
+    const { data } = await supabase.from('user_settings').select('*').eq('id', 'default').single()
+    if (data) {
+      const current = JSON.parse(localStorage.getItem('hub_settings') || '{}')
+      const localUpdatedAt = current._updatedAt || 0
+      if (Date.now() - localUpdatedAt < 5000) return
+      const merged = {
+        ...current,
+        salary: data.salary,
+        defaultCommission: data.default_commission,
+        darkMode: data.dark_mode,
+        goalStartDate: data.goal_start_date,
+        consistencyGoalTarget: data.consistency_goal_target,
+        consistencyGoalDays: data.consistency_goal_days,
+        incomeStreams: data.income_streams || current.incomeStreams,
+        notificationsEnabled: data.notifications_enabled,
+        notificationTime: data.notification_time,
+      }
+      localStorage.setItem('hub_settings', JSON.stringify(merged))
+      notify('settings')
+    }
+  } catch {}
+}
 
-  // Pull only on startup — never push on open (would overwrite other device's data)
+// ─── Auto-sync on app start (non-blocking) ────────────────────────────────────
+let _syncInitialised = false
+export function initSync() {
+  if (!isConfigured() || _syncInitialised) return
+  _syncInitialised = true
+
+  // Full pull on startup
   syncFromSupabase()
 
-  // Poll for remote changes every 2 seconds
-  setInterval(() => syncFromSupabase(), 2000)
+  // Poll only settings every 2 seconds (cheap: 1 request)
+  setInterval(() => quickPollSettings(), 2000)
+
+  // Full table sync every 30 seconds as a safety net
+  setInterval(() => syncFromSupabase(), 30 * 1000)
 
   // Push local changes every 30 seconds as a safety net
   setInterval(() => syncToSupabase(), 30 * 1000)
 
-  // Push when leaving the app
+  // Push when leaving the app, full pull when returning
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState !== 'visible') {
+    if (document.visibilityState === 'visible') {
+      syncFromSupabase()
+    } else {
       syncToSupabase()
     }
   })
