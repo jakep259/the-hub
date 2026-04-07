@@ -71,7 +71,6 @@ export async function syncToSupabase() {
         income_streams: s.incomeStreams,
         notifications_enabled: s.notificationsEnabled,
         notification_time: s.notificationTime,
-        client_updated_at: s._updatedAt || 0,
       })
     } catch {}
   }
@@ -91,15 +90,14 @@ export async function syncFromSupabase() {
     await pullTable(table, table, null)
   }
 
-  // Pull settings — only overwrite local if Supabase has a newer version
+  // Pull settings — only apply remote if this device has never saved settings
+  // (_updatedAt is set by saveSettings on every user change)
   try {
     const { data } = await supabase.from('user_settings').select('*').eq('id', 'default').single()
     if (data) {
       const current = JSON.parse(localStorage.getItem('hub_settings') || '{}')
-      const localTs = current._updatedAt || 0
-      const remoteTs = data.client_updated_at || 0
-      // Only apply remote settings if they are newer than what we have locally
-      if (remoteTs >= localTs) {
+      // If local settings have never been saved by the user, apply remote (fresh device)
+      if (!current._updatedAt) {
         const merged = {
           ...current,
           salary: data.salary,
@@ -111,7 +109,6 @@ export async function syncFromSupabase() {
           incomeStreams: data.income_streams || current.incomeStreams,
           notificationsEnabled: data.notifications_enabled,
           notificationTime: data.notification_time,
-          _updatedAt: remoteTs,
         }
         localStorage.setItem('hub_settings', JSON.stringify(merged))
         notify('settings')
