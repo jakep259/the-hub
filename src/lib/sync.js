@@ -57,7 +57,7 @@ export async function syncToSupabase() {
   const tables = [
     'bookies', 'open_bets', 'offers', 'income_entries',
     'expenses', 'daily_tasks', 'task_completions',
-    'weight_log', 'calorie_log', 'consistency_log',
+    'weight_log', 'calorie_log',
   ]
 
   for (const table of tables) {
@@ -81,7 +81,8 @@ export async function syncFromSupabase() {
   const tables = [
     'bookies', 'open_bets', 'offers', 'income_entries',
     'expenses', 'daily_tasks', 'task_completions',
-    'weight_log', 'calorie_log', 'consistency_log',
+    'weight_log', 'calorie_log',
+    // consistency_log is a keyed object, not an array — excluded from array-based sync
   ]
 
   for (const table of tables) {

@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useContext } from 'react'
 import { Routes, Route, NavLink, Link, useNavigate } from 'react-router-dom'
 import { Plus, X, TrendingUp, ArrowRight, Download, Edit3, Check } from 'lucide-react'
-import { getSettings, getList, saveList, genId } from '../lib/store'
-import { SyncContext } from '../App'
+import { getSettings, saveSettings, getList, saveList, genId } from '../lib/store'
+import { SyncContext, DarkModeContext } from '../App'
 import { format, startOfMonth, endOfMonth, isWithinInterval, parseISO, subMonths, getDaysInMonth, getDate } from 'date-fns'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
@@ -67,6 +67,8 @@ function IncomeModal({ entry, streams, onSave, onClose }) {
 // ─── Main Income Dashboard ────────────────────────────────────────────────────
 function IncomeDashboard() {
   const syncVersion = useContext(SyncContext)
+  const { darkMode } = useContext(DarkModeContext)
+  const barColor = darkMode ? '#C9A96E' : '#0D1F35'
   const [settings, setSettings] = useState(getSettings())
   const [entries, setEntries] = useState([])
   const [offers, setOffers] = useState([])
@@ -290,7 +292,7 @@ function IncomeDashboard() {
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-semibold text-sm text-gray-700 dark:text-white">2026 Income</h3>
           <div className="flex items-center gap-3 text-xs text-gray-400">
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm inline-block" style={{ background: '#0D1F35' }} />Actual</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm inline-block" style={{ background: barColor }} />Actual</span>
             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm inline-block" style={{ background: 'rgba(13,31,53,0.25)' }} />Projected</span>
           </div>
         </div>
@@ -303,7 +305,7 @@ function IncomeDashboard() {
             <ReferenceLine y={3000} stroke="#10b981" strokeDasharray="4 4" />
             <Bar dataKey="total" radius={[4, 4, 0, 0]}>
               {monthlyChartData.map((entry, i) => (
-                <Cell key={i} fill={entry.projected ? 'rgba(13,31,53,0.25)' : '#0D1F35'} />
+                <Cell key={i} fill={entry.projected ? (darkMode ? 'rgba(201,169,110,0.25)' : 'rgba(13,31,53,0.25)') : barColor} />
               ))}
             </Bar>
           </BarChart>
@@ -373,6 +375,8 @@ function IncomeDashboard() {
 // ─── Expenses Page ────────────────────────────────────────────────────────────
 function ExpensesPage() {
   const syncVersion = useContext(SyncContext)
+  const { darkMode } = useContext(DarkModeContext)
+  const barColor = darkMode ? '#C9A96E' : '#0D1F35'
   const navigate = useNavigate()
   const [expenses, setExpenses] = useState([])
   const [showModal, setShowModal] = useState(false)
@@ -460,7 +464,7 @@ function ExpensesPage() {
             <XAxis dataKey="month" tick={{ fontSize: 10 }} />
             <YAxis tick={{ fontSize: 10 }} />
             <Tooltip formatter={(v) => [`£${v}`, 'Total']} />
-            <Bar dataKey="total" fill="#0D1F35" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="total" fill={barColor} radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
