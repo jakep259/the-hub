@@ -400,13 +400,18 @@ export default function BetTracker() {
     setBets(next)
   }
 
-  function settle(id, outcome, profit) {
+  async function settle(id, outcome, profit) {
     const existing = getList('open_bets') || []
     const next = existing.map(b => b.id === id
       ? { ...b, status: 'settled', settled_outcome: outcome, actual_profit: profit }
       : b)
     saveList('open_bets', next)
     setBets(next)
+    // Push immediately so the 5s pull doesn't revert the settled state
+    try {
+      const { supabase } = await import('../../lib/supabase')
+      if (supabase) await supabase.from('open_bets').upsert(next, { onConflict: 'id' })
+    } catch {}
 
     // Also log to offers — only if not already logged for this bet
     if (profit != null) {

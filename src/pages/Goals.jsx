@@ -396,7 +396,10 @@ function ConsistencyGoal() {
   const syncVersion = useContext(SyncContext)
   const settings = getSettings()
   const [items, setItems] = useState(() => getList('consistency_items') || CONSISTENCY_ITEMS_DEFAULT)
-  const [log, setLog] = useState(() => getList('consistency_log') || {})
+  const [log, setLog] = useState(() => {
+    const saved = getList('consistency_log')
+    return (saved && !Array.isArray(saved)) ? saved : {}
+  })
   const [editDay, setEditDay] = useState(null) // date string
   const [newItem, setNewItem] = useState('')
   const [reward, setReward] = useState(() => getList('consistency_reward') || { text: '' })
@@ -404,7 +407,8 @@ function ConsistencyGoal() {
 
   useEffect(() => {
     setItems(getList('consistency_items') || CONSISTENCY_ITEMS_DEFAULT)
-    setLog(getList('consistency_log') || {})
+    const savedLog = getList('consistency_log')
+    setLog((savedLog && !Array.isArray(savedLog)) ? savedLog : {})
   }, [syncVersion])
 
   const START_DATE = settings.goalStartDate || '2026-04-06'

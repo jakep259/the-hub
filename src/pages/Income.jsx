@@ -36,7 +36,10 @@ function IncomeModal({ entry, streams, onSave, onClose }) {
           <button onClick={onClose}><X size={20} className="text-gray-500" /></button>
         </div>
         <div>
-          <label className="label">Stream</label>
+          <div className="flex items-center justify-between mb-1">
+            <label className="label mb-0">Stream</label>
+            <Link to="/settings" className="text-xs text-gold-500 font-semibold" onClick={onClose}>+ Manage streams</Link>
+          </div>
           <select className="input" value={form.stream_id} onChange={e => setForm({...form, stream_id: e.target.value})}>
             {streams.filter(s => s.id !== 'salary' && s.id !== 'mb').map(s => (
               <option key={s.id} value={s.id}>{s.label}</option>
