@@ -90,30 +90,48 @@ export async function syncFromSupabase() {
     await pullTable(table, table, null)
   }
 
-  // Pull settings — only apply remote if this device has never saved settings
-  // (_updatedAt is set by saveSettings on every user change)
+  // Pull settings — always apply Supabase values (it is the source of truth)
   try {
     const { data } = await supabase.from('user_settings').select('*').eq('id', 'default').single()
     if (data) {
       const current = JSON.parse(localStorage.getItem('hub_settings') || '{}')
-      // If local settings have never been saved by the user, apply remote (fresh device)
-      if (!current._updatedAt) {
-        const merged = {
-          ...current,
-          salary: data.salary,
-          defaultCommission: data.default_commission,
-          darkMode: data.dark_mode,
-          goalStartDate: data.goal_start_date,
-          consistencyGoalTarget: data.consistency_goal_target,
-          consistencyGoalDays: data.consistency_goal_days,
-          incomeStreams: data.income_streams || current.incomeStreams,
-          notificationsEnabled: data.notifications_enabled,
-          notificationTime: data.notification_time,
-        }
-        localStorage.setItem('hub_settings', JSON.stringify(merged))
-        notify('settings')
+      const merged = {
+        ...current,
+        salary: data.salary,
+        defaultCommission: data.default_commission,
+        darkMode: data.dark_mode,
+        goalStartDate: data.goal_start_date,
+        consistencyGoalTarget: data.consistency_goal_target,
+        consistencyGoalDays: data.consistency_goal_days,
+        incomeStreams: data.income_streams || current.incomeStreams,
+        notificationsEnabled: data.notifications_enabled,
+        notificationTime: data.notification_time,
       }
+      localStorage.setItem('hub_settings', JSON.stringify(merged))
+      notify('settings')
     }
+  } catch {}
+}
+
+// ─── Push settings immediately (called on every settings save) ───────────────
+export async function pushSettings() {
+  if (!isConfigured()) return
+  const settings = localStorage.getItem('hub_settings')
+  if (!settings) return
+  try {
+    const s = JSON.parse(settings)
+    await supabase.from('user_settings').upsert({
+      id: 'default',
+      salary: s.salary,
+      default_commission: s.defaultCommission,
+      dark_mode: s.darkMode,
+      goal_start_date: s.goalStartDate,
+      consistency_goal_target: s.consistencyGoalTarget,
+      consistency_goal_days: s.consistencyGoalDays,
+      income_streams: s.incomeStreams,
+      notifications_enabled: s.notificationsEnabled,
+      notification_time: s.notificationTime,
+    })
   } catch {}
 }
 

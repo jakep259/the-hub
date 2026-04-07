@@ -1,7 +1,7 @@
 import { useState, useEffect, createContext, useContext } from 'react'
 import { BrowserRouter, Routes, Route, NavLink, useLocation } from 'react-router-dom'
 import { LayoutDashboard, TrendingUp, Target, Settings, BookOpen } from 'lucide-react'
-import { getSettings, saveSettings, initBookies, registerSyncCallback, subscribe } from './lib/store'
+import { getSettings, saveSettings, initBookies, registerSyncCallback, registerSettingsPushCallback, subscribe } from './lib/store'
 
 import Dashboard from './pages/Dashboard'
 import MatchedBetting from './pages/MatchedBetting'
@@ -132,8 +132,9 @@ export default function App() {
   useEffect(() => {
     applyDark(darkMode)
     initBookies()
-    import('./lib/sync').then(({ initSync, schedulePush }) => {
+    import('./lib/sync').then(({ initSync, schedulePush, pushSettings }) => {
       registerSyncCallback(schedulePush)
+      registerSettingsPushCallback(pushSettings)
       initSync()
     })
     // Re-apply dark mode and salary when sync pulls fresh settings

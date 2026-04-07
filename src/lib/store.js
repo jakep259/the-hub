@@ -2,10 +2,13 @@
  * Lightweight reactive store using localStorage + custom event bus.
  * Each slice lives in localStorage and notifies subscribers on change.
  */
-// Sync callback registered by App on startup — avoids circular/early imports
+// Sync callbacks registered by App on startup — avoids circular/early imports
 let _syncCallback = null
+let _settingsPushCallback = null
 export function registerSyncCallback(fn) { _syncCallback = fn }
+export function registerSettingsPushCallback(fn) { _settingsPushCallback = fn }
 function triggerSync() { if (_syncCallback) _syncCallback() }
+function triggerSettingsPush() { if (_settingsPushCallback) _settingsPushCallback() }
 
 const listeners = {}
 
@@ -53,6 +56,7 @@ export function saveSettings(updates) {
   const next = { ...current, ...updates, _updatedAt: Date.now() }
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(next))
   notify('settings')
+  triggerSettingsPush()
   triggerSync()
   return next
 }
