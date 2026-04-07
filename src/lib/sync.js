@@ -98,11 +98,13 @@ export async function syncFromSupabase() {
     await pullTable(table, table, null)
   }
 
-  // Pull settings — always apply Supabase values (it is the source of truth)
+  // Pull settings — skip if saved locally in the last 5 seconds (let push land first)
   try {
     const { data } = await supabase.from('user_settings').select('*').eq('id', 'default').single()
     if (data) {
       const current = JSON.parse(localStorage.getItem('hub_settings') || '{}')
+      const localUpdatedAt = current._updatedAt || 0
+      if (Date.now() - localUpdatedAt < 5000) return
       const merged = {
         ...current,
         salary: data.salary,
