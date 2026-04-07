@@ -129,8 +129,8 @@ export function schedulePush() {
 export function initSync() {
   if (!isConfigured()) return
 
-  // Pull fresh data immediately on load
-  syncFromSupabase()
+  // Push local data first, then pull (ensures Supabase has latest before we read it)
+  syncToSupabase().then(() => syncFromSupabase())
 
   // Push local changes every 60 seconds as a safety net
   setInterval(() => syncToSupabase(), 60 * 1000)
