@@ -175,8 +175,8 @@ export function initSync() {
   // Poll only settings every 2 seconds (cheap: 1 request)
   setInterval(() => quickPollSettings(), 2000)
 
-  // Full table sync every 30 seconds as a safety net
-  setInterval(() => syncFromSupabase(), 30 * 1000)
+  // Full table sync every 5 seconds for fast cross-device updates
+  setInterval(() => syncFromSupabase(), 5000)
 
   // Push local changes every 30 seconds as a safety net
   setInterval(() => syncToSupabase(), 30 * 1000)

@@ -68,7 +68,10 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (isFirstRender.current) { isFirstRender.current = false; return }
-    saveSettings(settings)
+    // Only auto-save when the user made the change (not when remote sync updated state)
+    if (Date.now() - lastLocalSave.current < 2000) {
+      saveSettings(settings)
+    }
   }, [settings])
 
   function persist() {
