@@ -158,14 +158,15 @@ export function initSync() {
   // Pull only on startup — never push on open (would overwrite other device's data)
   syncFromSupabase()
 
-  // Push local changes every 60 seconds as a safety net
-  setInterval(() => syncToSupabase(), 60 * 1000)
+  // Poll for remote changes every 2 seconds
+  setInterval(() => syncFromSupabase(), 2000)
 
-  // Push when leaving the app, pull when returning
+  // Push local changes every 30 seconds as a safety net
+  setInterval(() => syncToSupabase(), 30 * 1000)
+
+  // Push when leaving the app
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') {
-      syncFromSupabase()
-    } else {
+    if (document.visibilityState !== 'visible') {
       syncToSupabase()
     }
   })
