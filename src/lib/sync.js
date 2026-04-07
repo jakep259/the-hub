@@ -27,9 +27,17 @@ async function pullTable(table, cacheKey, transform) {
     const { data, error } = await supabase.from(table).select('*')
     if (!error && data) {
       const transformed = transform ? data.map(transform) : data
-      localStorage.setItem('hub_' + cacheKey, JSON.stringify(transformed))
+      // Merge: keep any local records that haven't been pushed to Supabase yet
+      const localRaw = localStorage.getItem('hub_' + cacheKey)
+      const local = localRaw ? JSON.parse(localRaw) : []
+      const remoteIds = new Set(transformed.map(r => r.id))
+      const localOnly = Array.isArray(local) ? local.filter(r => !remoteIds.has(r.id)) : []
+      const merged = [...transformed, ...localOnly]
+      localStorage.setItem('hub_' + cacheKey, JSON.stringify(merged))
       notify(cacheKey)
-      return transformed
+      // Push any local-only records immediately so they don't get lost
+      if (localOnly.length > 0) pushTable(table, localOnly)
+      return merged
     }
   } catch {}
   return null
@@ -140,7 +148,7 @@ let _pushTimer = null
 export function schedulePush() {
   if (!isConfigured()) return
   clearTimeout(_pushTimer)
-  _pushTimer = setTimeout(() => syncToSupabase(), 2000)
+  _pushTimer = setTimeout(() => syncToSupabase(), 300)
 }
 
 // ─── Auto-sync on app start (non-blocking) ────────────────────────────────────
