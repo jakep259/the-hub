@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useContext } from 'react'
 import { Plus, X, Save, Download, Moon, Sun, Database, Wifi, WifiOff } from 'lucide-react'
-import { getSettings, saveSettings, getList, saveList, genId } from '../lib/store'
+import { getSettings, saveSettings, getList, saveList, genId, subscribe } from '../lib/store'
 import { format } from 'date-fns'
 import { DarkModeContext } from '../App'
 
@@ -44,6 +44,7 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState(getSettings())
   const [saved, setSaved] = useState(false)
   const isFirstRender = useRef(true)
+  const lastLocalSave = useRef(0)
   const [bookies, setBookies] = useState(getList('bookies') || [])
   const [supabaseKey, setSupabaseKey] = useState(() => {
     try { return JSON.parse(localStorage.getItem('hub_supabase_key') || '""') } catch { return '' }
@@ -52,8 +53,18 @@ export default function SettingsPage() {
   const [syncStatus, setSyncStatus] = useState(null)
 
   function update(key, val) {
+    lastLocalSave.current = Date.now()
     setSettings(prev => ({ ...prev, [key]: val }))
   }
+
+  // Re-read settings from localStorage when sync pulls remote changes
+  useEffect(() => {
+    return subscribe('settings', () => {
+      if (Date.now() - lastLocalSave.current > 5000) {
+        setSettings(getSettings())
+      }
+    })
+  }, [])
 
   useEffect(() => {
     if (isFirstRender.current) { isFirstRender.current = false; return }
