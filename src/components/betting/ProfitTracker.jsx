@@ -6,6 +6,8 @@ import {
 } from 'recharts'
 import { Download, Plus, X } from 'lucide-react'
 import { getList, saveList, genId } from '../../lib/store'
+import { useContext } from 'react'
+import { SyncContext } from '../../App'
 
 function exportCSV(data, filename) {
   if (!data.length) return
@@ -63,6 +65,7 @@ function LumpSumModal({ onClose, onSave }) {
 }
 
 export default function ProfitTracker() {
+  const syncVersion = useContext(SyncContext)
   const [offers, setOffers] = useState([])
   const [tasks, setTasks] = useState([])
   const [completions, setCompletions] = useState([])
@@ -75,7 +78,7 @@ export default function ProfitTracker() {
     setCompletions(getList('task_completions') || [])
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [syncVersion])
 
   function addLumpSum({ amount, date, notes }) {
     const entry = {

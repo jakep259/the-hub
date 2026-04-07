@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useContext } from 'react'
 import { Plus, X, CheckCircle, Circle, Flame, Edit3 } from 'lucide-react'
 import { getList, saveList, genId } from '../../lib/store'
+import { SyncContext } from '../../App'
 import { format, parseISO, differenceInDays } from 'date-fns'
 
 const TODAY = () => format(new Date(), 'yyyy-MM-dd')
@@ -92,6 +93,7 @@ function AddTaskModal({ editTask, onSave, onClose }) {
 }
 
 export default function DailyTasks() {
+  const syncVersion = useContext(SyncContext)
   const [tasks, setTasks] = useState([])
   const [completions, setCompletions] = useState([])
   const [showAdd, setShowAdd] = useState(false)
@@ -102,7 +104,7 @@ export default function DailyTasks() {
     setTasks(getList('daily_tasks') || [])
     setCompletions(getList('task_completions') || [])
   }
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [syncVersion])
 
   function toggle(taskId) {
     const comps = getList('task_completions') || []

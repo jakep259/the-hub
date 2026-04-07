@@ -10,6 +10,7 @@ import Goals from './pages/Goals'
 import SettingsPage from './pages/SettingsPage'
 
 export const DarkModeContext = createContext({ darkMode: false, setDarkMode: () => {} })
+export const SyncContext = createContext(0)
 
 const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, exact: true },
@@ -128,6 +129,7 @@ export default function App() {
       return s.darkMode || false
     } catch { return false }
   })
+  const [syncVersion, setSyncVersion] = useState(0)
 
   useEffect(() => {
     applyDark(darkMode)
@@ -137,13 +139,21 @@ export default function App() {
       registerSettingsPushCallback(pushSettings)
       initSync()
     })
-    // Re-apply dark mode and salary when sync pulls fresh settings
-    const unsub = subscribe('settings', () => {
-      const { darkMode: dm } = getSettings()
-      setDarkMode(dm)
-      applyDark(dm)
-    })
-    return unsub
+
+    const ALL_KEYS = [
+      'settings', 'bookies', 'open_bets', 'offers', 'income_entries',
+      'expenses', 'daily_tasks', 'task_completions',
+      'weight_log', 'calorie_log', 'consistency_log',
+    ]
+    const unsubs = ALL_KEYS.map(key => subscribe(key, () => {
+      if (key === 'settings') {
+        const { darkMode: dm } = getSettings()
+        setDarkMode(dm)
+        applyDark(dm)
+      }
+      setSyncVersion(v => v + 1)
+    }))
+    return () => unsubs.forEach(u => u())
   }, [])
 
   function handleSetDarkMode(val) {
@@ -154,10 +164,12 @@ export default function App() {
   }
 
   return (
-    <DarkModeContext.Provider value={{ darkMode, setDarkMode: handleSetDarkMode }}>
-      <BrowserRouter>
-        <AppShell />
-      </BrowserRouter>
-    </DarkModeContext.Provider>
+    <SyncContext.Provider value={syncVersion}>
+      <DarkModeContext.Provider value={{ darkMode, setDarkMode: handleSetDarkMode }}>
+        <BrowserRouter>
+          <AppShell />
+        </BrowserRouter>
+      </DarkModeContext.Provider>
+    </SyncContext.Provider>
   )
 }

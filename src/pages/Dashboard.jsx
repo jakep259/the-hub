@@ -14,7 +14,7 @@ import {
   format, startOfMonth, endOfMonth, isWithinInterval, parseISO,
   eachDayOfInterval, getDate, getDaysInMonth, subMonths, isSameDay
 } from 'date-fns'
-import { DarkModeContext } from '../App'
+import { DarkModeContext, SyncContext } from '../App'
 
 function countWeekdays(start, end) {
   let count = 0
@@ -55,6 +55,7 @@ function ChartTooltip({ active, payload, label }) {
 
 export default function Dashboard() {
   const { darkMode } = useContext(DarkModeContext)
+  const syncVersion = useContext(SyncContext)
   const [settings, setSettings] = useState(getSettings())
   const [offers, setOffers] = useState([])
   const [entries, setEntries] = useState([])
@@ -84,7 +85,7 @@ export default function Dashboard() {
       }))
       .filter(bk => bk.score < 60)
     setAlertBookies(alerts)
-  }, [])
+  }, [syncVersion])
 
   const now = new Date()
   const monthStart = startOfMonth(now)

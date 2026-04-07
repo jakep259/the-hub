@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useContext } from 'react'
 import {
   ChevronDown, ChevronUp, Plus, AlertCircle, CheckCircle, XCircle,
   Archive, Edit3, Save, X, Lightbulb
 } from 'lucide-react'
 import { getList, saveList, updateItem, deleteItem, addItem, genId } from '../../lib/store'
+import { SyncContext } from '../../App'
 import { calculateHealthScore, healthBadgeClass, healthColor, getMugBetRecommendation, offerSafetyRating } from '../../lib/healthScore'
 import { differenceInDays, format } from 'date-fns'
 
@@ -340,6 +341,7 @@ function AddBookieModal({ onClose, onAdd }) {
 }
 
 export default function BookieTracker() {
+  const syncVersion = useContext(SyncContext)
   const [bookies, setBookies] = useState([])
   const [bets, setBets] = useState([])
   const [offers, setOffers] = useState([])
@@ -353,7 +355,7 @@ export default function BookieTracker() {
     setOffers(getList('offers') || [])
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [syncVersion])
 
   function handleUpdate(id, updates) {
     const next = (getList('bookies') || []).map(b => b.id === id ? { ...b, ...updates } : b)

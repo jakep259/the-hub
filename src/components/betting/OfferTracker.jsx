@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useContext } from 'react'
 import { Plus, X, ChevronDown, ChevronUp, Filter } from 'lucide-react'
 import { getList, saveList, genId } from '../../lib/store'
+import { SyncContext } from '../../App'
 import { format, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 
@@ -96,6 +97,7 @@ function StatusBadge({ status }) {
 }
 
 export default function OfferTracker() {
+  const syncVersion = useContext(SyncContext)
   const [offers, setOffers] = useState([])
   const [bookies, setBookies] = useState([])
   const [showModal, setShowModal] = useState(false)
@@ -107,7 +109,7 @@ export default function OfferTracker() {
     setOffers(getList('offers') || [])
     setBookies(getList('bookies') || [])
   }
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [syncVersion])
 
   function saveOffer(offer) {
     const existing = getList('offers') || []

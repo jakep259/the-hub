@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useContext } from 'react'
 import { ChevronDown, ChevronUp, Trophy, Flame, Target, Scale, CheckSquare, Upload, X, Edit3 } from 'lucide-react'
 import { getSettings, getList, saveList, genId } from '../lib/store'
+import { SyncContext } from '../App'
 import { format, parseISO, differenceInDays, addDays, startOfMonth, endOfMonth, isWithinInterval, eachDayOfInterval } from 'date-fns'
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
@@ -32,6 +33,7 @@ function GoalCard({ icon: Icon, title, iconColor, children }) {
 
 // ─── Goal 1: Income ───────────────────────────────────────────────────────────
 function IncomeGoal() {
+  useContext(SyncContext)
   const settings = getSettings()
   const offers = getList('offers') || []
   const entries = getList('income_entries') || []
@@ -187,12 +189,18 @@ function RewardEditor({ reward, onSave, onClose }) {
 
 // ─── Goal 2: Health ───────────────────────────────────────────────────────────
 function HealthGoal() {
+  const syncVersion = useContext(SyncContext)
   const [weights, setWeights] = useState(() => getList('weight_log') || [])
   const [calories, setCalories] = useState(() => getList('calorie_log') || [])
   const [todayWeight, setTodayWeight] = useState('')
   const [todayCalories, setTodayCalories] = useState('')
   const [reward, setReward] = useState(() => getList('health_goal_reward') || { text: 'New clothes' })
   const [editReward, setEditReward] = useState(false)
+
+  useEffect(() => {
+    setWeights(getList('weight_log') || [])
+    setCalories(getList('calorie_log') || [])
+  }, [syncVersion])
 
   const START_WEIGHT = 82.6
   const TARGET_MIN = 77.5
@@ -385,6 +393,7 @@ const CONSISTENCY_ITEMS_DEFAULT = [
 ]
 
 function ConsistencyGoal() {
+  const syncVersion = useContext(SyncContext)
   const settings = getSettings()
   const [items, setItems] = useState(() => getList('consistency_items') || CONSISTENCY_ITEMS_DEFAULT)
   const [log, setLog] = useState(() => getList('consistency_log') || {})
@@ -392,6 +401,11 @@ function ConsistencyGoal() {
   const [newItem, setNewItem] = useState('')
   const [reward, setReward] = useState(() => getList('consistency_reward') || { text: '' })
   const [editReward, setEditReward] = useState(false)
+
+  useEffect(() => {
+    setItems(getList('consistency_items') || CONSISTENCY_ITEMS_DEFAULT)
+    setLog(getList('consistency_log') || {})
+  }, [syncVersion])
 
   const START_DATE = settings.goalStartDate || '2026-04-06'
   const TOTAL_DAYS = settings.consistencyGoalDays || 85

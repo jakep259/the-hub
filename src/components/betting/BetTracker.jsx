@@ -9,7 +9,7 @@ import { useState, useEffect, useContext } from 'react'
 import { Plus, X, CheckCircle, Clock, ChevronDown, ChevronUp, Edit3 } from 'lucide-react'
 import { getList, saveList, genId } from '../../lib/store'
 import { format } from 'date-fns'
-import { DarkModeContext } from '../../App'
+import { DarkModeContext, SyncContext } from '../../App'
 
 const BET_TYPES = ['Back/Lay', 'Each-Way', 'Free Bet SNR', 'Free Bet SR', 'Underlay', 'Overlay', 'ACCA', 'Dutch', 'Arb', 'Other']
 const BOOKIES_KEY = 'bookies'
@@ -368,6 +368,7 @@ function NumField({ label, val, set }) {
 
 export default function BetTracker() {
   const { darkMode } = useContext(DarkModeContext)
+  const syncVersion = useContext(SyncContext)
   const [bets, setBets] = useState([])
   const [bookies, setBookies] = useState([])
   const [showAdd, setShowAdd] = useState(false)
@@ -379,8 +380,8 @@ export default function BetTracker() {
     setBets(getList('open_bets') || [])
     setBookies(getList('bookies') || [])
   }
+  useEffect(() => { load() }, [syncVersion])
   useEffect(() => {
-    load()
     const pending = localStorage.getItem('hub_pending_bet')
     if (pending) {
       try {

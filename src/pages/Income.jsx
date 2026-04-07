@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useContext } from 'react'
 import { Routes, Route, NavLink, Link, useNavigate } from 'react-router-dom'
 import { Plus, X, TrendingUp, ArrowRight, Download, Edit3, Check } from 'lucide-react'
 import { getSettings, getList, saveList, genId } from '../lib/store'
+import { SyncContext } from '../App'
 import { format, startOfMonth, endOfMonth, isWithinInterval, parseISO, subMonths, getDaysInMonth, getDate } from 'date-fns'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
@@ -65,6 +66,7 @@ function IncomeModal({ entry, streams, onSave, onClose }) {
 
 // ─── Main Income Dashboard ────────────────────────────────────────────────────
 function IncomeDashboard() {
+  const syncVersion = useContext(SyncContext)
   const [settings, setSettings] = useState(getSettings())
   const [entries, setEntries] = useState([])
   const [offers, setOffers] = useState([])
@@ -84,7 +86,7 @@ function IncomeDashboard() {
     setTasks(getList('daily_tasks') || [])
     setCompletions(getList('task_completions') || [])
   }
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [syncVersion])
 
   const now = new Date()
   const streams = settings.incomeStreams || []
@@ -370,13 +372,14 @@ function IncomeDashboard() {
 
 // ─── Expenses Page ────────────────────────────────────────────────────────────
 function ExpensesPage() {
+  const syncVersion = useContext(SyncContext)
   const navigate = useNavigate()
   const [expenses, setExpenses] = useState([])
   const [showModal, setShowModal] = useState(false)
   const [editExp, setEditExp] = useState(null)
 
   function load() { setExpenses(getList('expenses') || []) }
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [syncVersion])
 
   function saveExp(e) {
     const existing = getList('expenses') || []
