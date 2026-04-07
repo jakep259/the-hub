@@ -63,25 +63,8 @@ export async function syncToSupabase() {
     }
   }
 
-  // Sync settings
-  const settings = localStorage.getItem('hub_settings')
-  if (settings) {
-    try {
-      const s = JSON.parse(settings)
-      await supabase.from('user_settings').upsert({
-        id: 'default',
-        salary: s.salary,
-        default_commission: s.defaultCommission,
-        dark_mode: s.darkMode,
-        goal_start_date: s.goalStartDate,
-        consistency_goal_target: s.consistencyGoalTarget,
-        consistency_goal_days: s.consistencyGoalDays,
-        income_streams: s.incomeStreams,
-        notifications_enabled: s.notificationsEnabled,
-        notification_time: s.notificationTime,
-      })
-    } catch {}
-  }
+  // Settings are pushed immediately on save via pushSettings() — skip here to
+  // prevent stale local defaults overwriting another device's recent changes.
 }
 
 // ─── Pull remote data down ────────────────────────────────────────────────────
