@@ -17,7 +17,7 @@ export function subscribe(key, fn) {
   }
 }
 
-function notify(key) {
+export function notify(key) {
   ;(listeners[key] || []).forEach(fn => fn())
 }
 

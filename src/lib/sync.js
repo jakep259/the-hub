@@ -5,6 +5,7 @@
  * Safe to call even when Supabase key is missing — silently no-ops.
  */
 import { supabase, cacheSet, cacheGet } from './supabase'
+import { notify } from './store'
 
 const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
 
@@ -27,6 +28,7 @@ async function pullTable(table, cacheKey, transform) {
     if (!error && data) {
       const transformed = transform ? data.map(transform) : data
       localStorage.setItem('hub_' + cacheKey, JSON.stringify(transformed))
+      notify(cacheKey)
       return transformed
     }
   } catch {}
@@ -106,6 +108,7 @@ export async function syncFromSupabase() {
         notificationTime: data.notification_time,
       }
       localStorage.setItem('hub_settings', JSON.stringify(merged))
+      notify('settings')
     }
   } catch {}
 }
