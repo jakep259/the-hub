@@ -50,7 +50,7 @@ export function getSettings() {
 
 export function saveSettings(updates) {
   const current = getSettings()
-  const next = { ...current, ...updates }
+  const next = { ...current, ...updates, _updatedAt: Date.now() }
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(next))
   notify('settings')
   triggerSync()

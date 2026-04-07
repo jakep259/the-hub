@@ -71,6 +71,7 @@ export async function syncToSupabase() {
         income_streams: s.incomeStreams,
         notifications_enabled: s.notificationsEnabled,
         notification_time: s.notificationTime,
+        client_updated_at: s._updatedAt || 0,
       })
     } catch {}
   }
@@ -90,25 +91,31 @@ export async function syncFromSupabase() {
     await pullTable(table, table, null)
   }
 
-  // Pull settings
+  // Pull settings — only overwrite local if Supabase has a newer version
   try {
     const { data } = await supabase.from('user_settings').select('*').eq('id', 'default').single()
     if (data) {
       const current = JSON.parse(localStorage.getItem('hub_settings') || '{}')
-      const merged = {
-        ...current,
-        salary: data.salary,
-        defaultCommission: data.default_commission,
-        darkMode: data.dark_mode,
-        goalStartDate: data.goal_start_date,
-        consistencyGoalTarget: data.consistency_goal_target,
-        consistencyGoalDays: data.consistency_goal_days,
-        incomeStreams: data.income_streams || current.incomeStreams,
-        notificationsEnabled: data.notifications_enabled,
-        notificationTime: data.notification_time,
+      const localTs = current._updatedAt || 0
+      const remoteTs = data.client_updated_at || 0
+      // Only apply remote settings if they are newer than what we have locally
+      if (remoteTs >= localTs) {
+        const merged = {
+          ...current,
+          salary: data.salary,
+          defaultCommission: data.default_commission,
+          darkMode: data.dark_mode,
+          goalStartDate: data.goal_start_date,
+          consistencyGoalTarget: data.consistency_goal_target,
+          consistencyGoalDays: data.consistency_goal_days,
+          incomeStreams: data.income_streams || current.incomeStreams,
+          notificationsEnabled: data.notifications_enabled,
+          notificationTime: data.notification_time,
+          _updatedAt: remoteTs,
+        }
+        localStorage.setItem('hub_settings', JSON.stringify(merged))
+        notify('settings')
       }
-      localStorage.setItem('hub_settings', JSON.stringify(merged))
-      notify('settings')
     }
   } catch {}
 }
