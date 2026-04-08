@@ -157,8 +157,8 @@ function AddBetModal({ onSave, onClose, prefill }) {
 
 function SettleModal({ bet, onSettle, onClose }) {
   const { darkMode } = useContext(DarkModeContext)
-  const [outcome, setOutcome] = useState(null)
-  const [customProfit, setCustomProfit] = useState('')
+  const [outcome, setOutcome] = useState(bet.settled_outcome || null)
+  const [customProfit, setCustomProfit] = useState(bet.actual_profit != null ? String(bet.actual_profit) : '')
 
   const outcomes = [
     {
@@ -332,9 +332,13 @@ function BetRow({ bet, bookies, onSettle, onDelete }) {
 
           {/* Actions */}
           <div className="flex gap-2">
-            {isOpen && (
+            {isOpen ? (
               <button onClick={() => onSettle(bet)} className="btn-primary text-xs py-2 flex-1">
                 Settle bet
+              </button>
+            ) : (
+              <button onClick={() => onSettle(bet)} className="btn-ghost text-xs py-2 flex-1">
+                Edit settlement
               </button>
             )}
             <button onClick={() => onDelete(bet.id)} className="btn-ghost text-xs py-2" style={{ color: '#ef4444', borderColor: '#ef4444' }}>
@@ -419,23 +423,22 @@ export default function BetTracker() {
       const today = format(new Date(), 'yyyy-MM-dd')
       const existingOffers = getList('offers') || []
       const existingEntry = existingOffers.find(o => o.bet_id === id)
+      const offerEntry = {
+        id: existingEntry?.id || genId(),
+        bet_id: id,
+        bookie_id: bet?.bookie_id || '',
+        offer_type: bet?.bet_type || 'Back/Lay',
+        status: 'Completed',
+        actual_profit: profit,
+        expected_profit: bet?.profit_guaranteed || null,
+        date: today,
+        notes: `Settled from Bet Tracker: ${outcomeLabels[outcome] || outcome}`,
+      }
       if (!existingEntry) {
-        // Create new offer entry
-        const offerEntry = {
-          id: genId(),
-          bet_id: id,
-          bookie_id: bet?.bookie_id || '',
-          offer_type: bet?.bet_type || 'Back/Lay',
-          status: 'Completed',
-          actual_profit: profit,
-          expected_profit: bet?.profit_guaranteed || null,
-          date: today,
-          notes: `Settled from Bet Tracker: ${outcomeLabels[outcome] || outcome}`,
-        }
         saveList('offers', [...existingOffers, offerEntry])
-      } else if (existingEntry.date !== today) {
-        // Entry exists but has wrong date (bet placement date) — fix to settlement date
-        saveList('offers', existingOffers.map(o => o.bet_id === id ? { ...o, date: today, actual_profit: profit } : o))
+      } else {
+        // Update existing entry (re-settle / profit correction)
+        saveList('offers', existingOffers.map(o => o.bet_id === id ? offerEntry : o))
       }
     }
   }
