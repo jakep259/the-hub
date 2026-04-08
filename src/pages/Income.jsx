@@ -210,10 +210,11 @@ function IncomeDashboard() {
     setEntries(next)
   }
 
-  function deleteEntry(id) {
+  async function deleteEntry(id) {
     const next = (getList('income_entries') || []).filter(e => e.id !== id)
     saveList('income_entries', next)
     setEntries(next)
+    try { const { supabase } = await import('../lib/supabase'); if (supabase) await supabase.from('income_entries').delete().eq('id', id) } catch {}
   }
 
   const manualStreams = streams.filter(s => s.id !== 'salary' && s.id !== 'mb')
@@ -396,10 +397,11 @@ function ExpensesPage() {
     setExpenses(next)
   }
 
-  function deleteExp(id) {
+  async function deleteExp(id) {
     const next = (getList('expenses') || []).filter(e => e.id !== id)
     saveList('expenses', next)
     setExpenses(next)
+    try { const { supabase } = await import('../lib/supabase'); if (supabase) await supabase.from('expenses').delete().eq('id', id) } catch {}
   }
 
   const now = new Date()

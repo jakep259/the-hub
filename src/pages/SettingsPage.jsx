@@ -91,8 +91,8 @@ export default function SettingsPage() {
     setSyncStatus(null)
     try {
       const { syncToSupabase, syncFromSupabase } = await import('../lib/sync')
-      await syncFromSupabase()
       await syncToSupabase()
+      await syncFromSupabase()
       setSyncStatus('success')
     } catch {
       setSyncStatus('error')

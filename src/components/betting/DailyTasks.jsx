@@ -132,10 +132,11 @@ export default function DailyTasks() {
     setTasks(next)
   }
 
-  function deleteTask(id) {
+  async function deleteTask(id) {
     const next = (getList('daily_tasks') || []).filter(t => t.id !== id)
     saveList('daily_tasks', next)
     setTasks(next)
+    try { const { supabase } = await import('../../lib/supabase'); if (supabase) await supabase.from('daily_tasks').delete().eq('id', id) } catch {}
   }
 
   const todayDone = completions.filter(c => c.date === today).map(c => c.task_id)

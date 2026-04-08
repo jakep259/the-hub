@@ -124,10 +124,11 @@ export default function OfferTracker() {
     setOffers(next)
   }
 
-  function deleteOffer(id) {
+  async function deleteOffer(id) {
     const next = (getList('offers') || []).filter(o => o.id !== id)
     saveList('offers', next)
     setOffers(next)
+    try { const { supabase } = await import('../../lib/supabase'); if (supabase) await supabase.from('offers').delete().eq('id', id) } catch {}
   }
 
   const now = new Date()
