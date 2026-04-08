@@ -413,11 +413,14 @@ export default function BetTracker() {
       if (supabase) await supabase.from('open_bets').upsert(next, { onConflict: 'id' })
     } catch {}
 
-    // Also log to offers — only if not already logged for this bet
+    // Also log to offers using settlement date (today), not bet placement date
     if (profit != null) {
       const bet = next.find(b => b.id === id)
+      const today = format(new Date(), 'yyyy-MM-dd')
       const existingOffers = getList('offers') || []
-      if (!existingOffers.some(o => o.bet_id === id)) {
+      const existingEntry = existingOffers.find(o => o.bet_id === id)
+      if (!existingEntry) {
+        // Create new offer entry
         const offerEntry = {
           id: genId(),
           bet_id: id,
@@ -426,10 +429,13 @@ export default function BetTracker() {
           status: 'Completed',
           actual_profit: profit,
           expected_profit: bet?.profit_guaranteed || null,
-          date: bet?.date || format(new Date(), 'yyyy-MM-dd'),
+          date: today,
           notes: `Settled from Bet Tracker: ${outcomeLabels[outcome] || outcome}`,
         }
         saveList('offers', [...existingOffers, offerEntry])
+      } else if (existingEntry.date !== today) {
+        // Entry exists but has wrong date (bet placement date) — fix to settlement date
+        saveList('offers', existingOffers.map(o => o.bet_id === id ? { ...o, date: today, actual_profit: profit } : o))
       }
     }
   }
