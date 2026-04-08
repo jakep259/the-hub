@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useContext } from 'react'
-import { Plus, X, Save, Download, Moon, Sun, Database, Wifi, WifiOff } from 'lucide-react'
+import { Plus, X, Save, Download, Moon, Sun, Database, Wifi, WifiOff, AlertTriangle } from 'lucide-react'
 import { getSettings, saveSettings, getList, saveList, genId, subscribe } from '../lib/store'
 import { format } from 'date-fns'
 import { DarkModeContext } from '../App'
@@ -51,6 +51,8 @@ export default function SettingsPage() {
   })
   const [syncing, setSyncing] = useState(false)
   const [syncStatus, setSyncStatus] = useState(null)
+  const [forceSyncing, setForceSyncing] = useState(false)
+  const [forceSyncStatus, setForceSyncStatus] = useState(null)
 
   function update(key, val) {
     lastLocalSave.current = Date.now()
@@ -99,6 +101,22 @@ export default function SettingsPage() {
     } finally {
       setSyncing(false)
       setTimeout(() => setSyncStatus(null), 3000)
+    }
+  }
+
+  async function forcePush() {
+    if (!window.confirm('This will REPLACE all data in Supabase with this device\'s data. All other devices will then sync to match this device. Continue?')) return
+    setForceSyncing(true)
+    setForceSyncStatus(null)
+    try {
+      const { forcePushToSupabase } = await import('../lib/sync')
+      await forcePushToSupabase()
+      setForceSyncStatus('success')
+    } catch {
+      setForceSyncStatus('error')
+    } finally {
+      setForceSyncing(false)
+      setTimeout(() => setForceSyncStatus(null), 4000)
     }
   }
 
@@ -199,6 +217,24 @@ export default function SettingsPage() {
               <><WifiOff size={13} className="text-red-400" /> Failed</>
             ) : (
               <><Database size={13} /> Sync</>
+            )}
+          </button>
+        </Row>
+        <Row label="This device is correct" sub="Wipe Supabase and replace with this device's data. Other devices will match within 5s.">
+          <button
+            onClick={forcePush}
+            disabled={forceSyncing}
+            className="btn-ghost text-xs px-3 py-2 flex items-center gap-1.5"
+            style={{ color: forceSyncStatus === 'success' ? '#10b981' : forceSyncStatus === 'error' ? '#ef4444' : '#f59e0b' }}
+          >
+            {forceSyncing ? (
+              <span className="animate-spin">⟳</span>
+            ) : forceSyncStatus === 'success' ? (
+              <><Wifi size={13} /> Done!</>
+            ) : forceSyncStatus === 'error' ? (
+              <><WifiOff size={13} /> Failed</>
+            ) : (
+              <><AlertTriangle size={13} /> Replace remote</>
             )}
           </button>
         </Row>

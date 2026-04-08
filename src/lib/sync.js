@@ -136,6 +136,38 @@ export async function pushSettings() {
   } catch {}
 }
 
+// ─── Force push: replace ALL remote data with this device's local data ───────
+// Use this when this device has the authoritative data and you want to wipe
+// Supabase clean and repopulate it. All other devices will pick up the correct
+// data on their next 5-second pull.
+export async function forcePushToSupabase() {
+  if (!isConfigured()) throw new Error('Supabase not configured')
+
+  const tables = [
+    'bookies', 'open_bets', 'offers', 'income_entries',
+    'expenses', 'daily_tasks', 'task_completions',
+    'weight_log', 'calorie_log',
+  ]
+
+  for (const table of tables) {
+    try {
+      // Delete all rows in this table on Supabase
+      await supabase.from(table).delete().not('id', 'is', null)
+      // Re-insert local data
+      const raw = localStorage.getItem('hub_' + table)
+      if (raw) {
+        const rows = JSON.parse(raw)
+        if (Array.isArray(rows) && rows.length > 0) {
+          await supabase.from(table).insert(rows)
+        }
+      }
+    } catch {}
+  }
+
+  // Push settings too
+  await pushSettings()
+}
+
 // ─── Debounced push — called after every data save ───────────────────────────
 let _pushTimer = null
 export function schedulePush() {
