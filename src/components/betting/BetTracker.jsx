@@ -396,12 +396,20 @@ export default function BetTracker() {
     }
   }, [])
 
-  function saveBet(bet) {
+  async function saveBet(bet) {
     const existing = getList('open_bets') || []
     const idx = existing.findIndex(b => b.id === bet.id)
     const next = idx >= 0 ? existing.map(b => b.id === bet.id ? bet : b) : [...existing, bet]
     saveList('open_bets', next)
     setBets(next)
+    try {
+      const { supabase } = await import('../../lib/supabase')
+      if (supabase) {
+        const dbRow = Object.fromEntries(Object.entries(bet).filter(([k]) => !k.startsWith('_')))
+        const { error } = await supabase.from('open_bets').upsert(dbRow, { onConflict: 'id' })
+        if (error) console.error('Save bet push failed:', error)
+      }
+    } catch (e) { console.error('Save bet push error:', e) }
   }
 
   const outcomeLabels = { guaranteed: 'Guaranteed', exchange_wins: 'Exchange Won', bookie_wins: 'Bookie Won' }
@@ -413,11 +421,12 @@ export default function BetTracker() {
     saveList('open_bets', next)
     setBets(next)
 
-    // Push ONLY the single settled bet — avoids one bad record failing the whole upsert
+    // Push ONLY the single settled bet — strip _private fields before sending to Supabase
     try {
       const { supabase } = await import('../../lib/supabase')
       if (supabase) {
-        const { error } = await supabase.from('open_bets').upsert(settledBet, { onConflict: 'id' })
+        const dbRow = Object.fromEntries(Object.entries(settledBet).filter(([k]) => !k.startsWith('_')))
+        const { error } = await supabase.from('open_bets').upsert(dbRow, { onConflict: 'id' })
         if (error) console.error('Settle bet push failed:', error)
       }
     } catch (e) { console.error('Settle bet push error:', e) }

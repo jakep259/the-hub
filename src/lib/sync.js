@@ -13,11 +13,16 @@ function isConfigured() {
   return !!supabase && !!ANON_KEY && ANON_KEY !== 'your_supabase_anon_key_here'
 }
 
+// Strip localStorage-only fields (prefixed with _) before sending to Supabase
+function toDb(row) {
+  return Object.fromEntries(Object.entries(row).filter(([k]) => !k.startsWith('_')))
+}
+
 // ─── Generic upsert-all ───────────────────────────────────────────────────────
 async function pushTable(table, rows) {
   if (!isConfigured() || !rows?.length) return
   try {
-    await supabase.from(table).upsert(rows, { onConflict: 'id' })
+    await supabase.from(table).upsert(rows.map(toDb), { onConflict: 'id' })
   } catch {}
 }
 
