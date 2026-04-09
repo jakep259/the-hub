@@ -27,24 +27,29 @@ async function pullTable(table, cacheKey, transform) {
     const { data, error } = await supabase.from(table).select('*')
     if (!error && data) {
       const transformed = transform ? data.map(transform) : data
-      // Merge: keep any local records that haven't been pushed to Supabase yet
+
+      // Remote is authoritative — replace local completely.
+      // Data is pushed to Supabase within 300ms of every save (schedulePush),
+      // so local-only records should not exist in normal operation. Keeping
+      // local-only records caused perpetual cross-device divergence when one
+      // device had stale/wrong records that never existed in Supabase.
+      //
+      // Exception: if a bet is settled locally but Supabase hasn't caught up
+      // yet (within the same 5-second pull window), keep the local settled state.
       const localRaw = localStorage.getItem('hub_' + cacheKey)
       const local = localRaw ? JSON.parse(localRaw) : []
-      const remoteIds = new Set(transformed.map(r => r.id))
       const localMap = new Map(Array.isArray(local) ? local.map(r => [r.id, r]) : [])
-      // Keep local version if it's already settled but remote hasn't caught up yet
-      const mergedRemote = transformed.map(remoteRow => {
+
+      const result = transformed.map(remoteRow => {
         const localRow = localMap.get(remoteRow.id)
+        // Keep local if it's already settled but remote hasn't caught up yet
         if (localRow?.status === 'settled' && remoteRow.status !== 'settled') return localRow
         return remoteRow
       })
-      const localOnly = Array.isArray(local) ? local.filter(r => !remoteIds.has(r.id)) : []
-      const merged = [...mergedRemote, ...localOnly]
-      localStorage.setItem('hub_' + cacheKey, JSON.stringify(merged))
+
+      localStorage.setItem('hub_' + cacheKey, JSON.stringify(result))
       notify(cacheKey)
-      // Push any local-only records immediately so they don't get lost
-      if (localOnly.length > 0) pushTable(table, localOnly)
-      return merged
+      return result
     }
   } catch {}
   return null
@@ -152,7 +157,7 @@ export async function forcePushToSupabase() {
   for (const table of tables) {
     try {
       // Delete all rows in this table on Supabase
-      await supabase.from(table).delete().not('id', 'is', null)
+      await supabase.from(table).delete().gte('id', '')
       // Re-insert local data
       const raw = localStorage.getItem('hub_' + table)
       if (raw) {
