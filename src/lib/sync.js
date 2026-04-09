@@ -169,12 +169,12 @@ export async function forcePushToSupabase() {
     try {
       // Delete all rows in this table on Supabase
       await supabase.from(table).delete().gte('id', '')
-      // Re-insert local data
+      // Re-insert local data (strip _private localStorage-only fields)
       const raw = localStorage.getItem('hub_' + table)
       if (raw) {
         const rows = JSON.parse(raw)
         if (Array.isArray(rows) && rows.length > 0) {
-          await supabase.from(table).insert(rows)
+          await supabase.from(table).upsert(rows.map(toDb), { onConflict: 'id' })
         }
       }
     } catch {}
