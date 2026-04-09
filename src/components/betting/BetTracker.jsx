@@ -404,46 +404,55 @@ export default function BetTracker() {
     setBets(next)
   }
 
+  const outcomeLabels = { guaranteed: 'Guaranteed', exchange_wins: 'Exchange Won', bookie_wins: 'Bookie Won' }
+
   async function settle(id, outcome, profit) {
     const existing = getList('open_bets') || []
-    const next = existing.map(b => b.id === id
-      ? { ...b, status: 'settled', settled_outcome: outcome, actual_profit: profit }
-      : b)
+    const settledBet = { ...existing.find(b => b.id === id), status: 'settled', settled_outcome: outcome, actual_profit: profit, _settledAt: Date.now() }
+    const next = existing.map(b => b.id === id ? settledBet : b)
     saveList('open_bets', next)
     setBets(next)
-    // Push immediately so the 5s pull doesn't revert the settled state
+
+    // Push ONLY the single settled bet — avoids one bad record failing the whole upsert
     try {
       const { supabase } = await import('../../lib/supabase')
-      if (supabase) await supabase.from('open_bets').upsert(next, { onConflict: 'id' })
-    } catch {}
+      if (supabase) {
+        const { error } = await supabase.from('open_bets').upsert(settledBet, { onConflict: 'id' })
+        if (error) console.error('Settle bet push failed:', error)
+      }
+    } catch (e) { console.error('Settle bet push error:', e) }
 
-    // Also log to offers using settlement date (today), not bet placement date
+    // Log to offers, then push offer entry directly to Supabase too
     if (profit != null) {
-      const bet = next.find(b => b.id === id)
       const today = format(new Date(), 'yyyy-MM-dd')
       const existingOffers = getList('offers') || []
       const existingEntry = existingOffers.find(o => o.bet_id === id)
       const offerEntry = {
         id: existingEntry?.id || genId(),
         bet_id: id,
-        bookie_id: bet?.bookie_id || '',
-        offer_type: bet?.bet_type || 'Back/Lay',
+        bookie_id: settledBet?.bookie_id || '',
+        offer_type: settledBet?.bet_type || 'Back/Lay',
         status: 'Completed',
         actual_profit: profit,
-        expected_profit: bet?.profit_guaranteed || null,
+        expected_profit: settledBet?.profit_guaranteed || null,
         date: today,
-        notes: `Settled from Bet Tracker: ${outcomeLabels[outcome] || outcome}`,
+        notes: `Settled: ${outcomeLabels[outcome] || outcome}`,
       }
-      if (!existingEntry) {
-        saveList('offers', [...existingOffers, offerEntry])
-      } else {
-        // Update existing entry (re-settle / profit correction)
-        saveList('offers', existingOffers.map(o => o.bet_id === id ? offerEntry : o))
-      }
+      const nextOffers = existingEntry
+        ? existingOffers.map(o => o.bet_id === id ? offerEntry : o)
+        : [...existingOffers, offerEntry]
+      saveList('offers', nextOffers)
+
+      // Push offer entry directly to Supabase (don't rely on schedulePush alone)
+      try {
+        const { supabase } = await import('../../lib/supabase')
+        if (supabase) {
+          const { error } = await supabase.from('offers').upsert(offerEntry, { onConflict: 'id' })
+          if (error) console.error('Settle offer push failed:', error)
+        }
+      } catch (e) { console.error('Settle offer push error:', e) }
     }
   }
-
-  const outcomeLabels = { guaranteed: 'Guaranteed', exchange_wins: 'Exchange Won', bookie_wins: 'Bookie Won' }
 
   async function deleteBet(id) {
     const next = (getList('open_bets') || []).filter(b => b.id !== id)

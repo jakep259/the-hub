@@ -42,8 +42,14 @@ async function pullTable(table, cacheKey, transform) {
 
       const result = transformed.map(remoteRow => {
         const localRow = localMap.get(remoteRow.id)
-        // Keep local if it's already settled but remote hasn't caught up yet
-        if (localRow?.status === 'settled' && remoteRow.status !== 'settled') return localRow
+        // Keep local if settled locally and remote hasn't caught up yet
+        // Only within a short grace window (30s) to avoid permanently freezing a wrong state
+        if (
+          localRow?.status === 'settled' &&
+          remoteRow.status !== 'settled' &&
+          localRow._settledAt &&
+          Date.now() - localRow._settledAt < 30000
+        ) return localRow
         return remoteRow
       })
 
