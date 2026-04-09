@@ -452,11 +452,12 @@ export default function BetTracker() {
         : [...existingOffers, offerEntry]
       saveList('offers', nextOffers)
 
-      // Push offer entry directly to Supabase (don't rely on schedulePush alone)
+      // Push offer entry directly to Supabase — strip bet_id (not a Supabase column)
       try {
         const { supabase } = await import('../../lib/supabase')
         if (supabase) {
-          const { error } = await supabase.from('offers').upsert(offerEntry, { onConflict: 'id' })
+          const { bet_id: _drop, ...offerForDb } = offerEntry
+          const { error } = await supabase.from('offers').upsert(offerForDb, { onConflict: 'id' })
           if (error) console.error('Settle offer push failed:', error)
         }
       } catch (e) { console.error('Settle offer push error:', e) }

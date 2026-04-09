@@ -13,9 +13,16 @@ function isConfigured() {
   return !!supabase && !!ANON_KEY && ANON_KEY !== 'your_supabase_anon_key_here'
 }
 
-// Strip localStorage-only fields (prefixed with _) before sending to Supabase
+// Fields that only exist in localStorage — never sent to Supabase
+// bet_id links an offer entry back to its bet locally, but the offers table
+// doesn't have that column in Supabase so we strip it before pushing.
+const LOCAL_ONLY_FIELDS = new Set(['bet_id'])
+
+// Strip localStorage-only fields before sending to Supabase
 function toDb(row) {
-  return Object.fromEntries(Object.entries(row).filter(([k]) => !k.startsWith('_')))
+  return Object.fromEntries(
+    Object.entries(row).filter(([k]) => !k.startsWith('_') && !LOCAL_ONLY_FIELDS.has(k))
+  )
 }
 
 // ─── Generic upsert-all ───────────────────────────────────────────────────────
