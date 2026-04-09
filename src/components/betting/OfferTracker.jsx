@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from 'react'
-import { Plus, X, ChevronDown, ChevronUp, Filter } from 'lucide-react'
+import { Plus, X, ChevronDown, ChevronUp, Filter, Pencil, Trash2 } from 'lucide-react'
 import { getList, saveList, genId } from '../../lib/store'
 import { SyncContext } from '../../App'
 import { format, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns'
@@ -104,6 +104,7 @@ export default function OfferTracker() {
   const [editOffer, setEditOffer] = useState(null)
   const [filterStatus, setFilterStatus] = useState('all')
   const [view, setView] = useState('list') // list | stats
+  const [showAllMonths, setShowAllMonths] = useState(false)
 
   function load() {
     setOffers(getList('offers') || [])
@@ -111,17 +112,20 @@ export default function OfferTracker() {
   }
   useEffect(() => { load() }, [syncVersion])
 
-  function saveOffer(offer) {
+  async function saveOffer(offer) {
     const existing = getList('offers') || []
     const idx = existing.findIndex(o => o.id === offer.id)
-    let next
-    if (idx >= 0) {
-      next = existing.map(o => o.id === offer.id ? offer : o)
-    } else {
-      next = [...existing, offer]
-    }
+    const next = idx >= 0 ? existing.map(o => o.id === offer.id ? offer : o) : [...existing, offer]
     saveList('offers', next)
     setOffers(next)
+    // Push immediately to Supabase
+    try {
+      const { supabase } = await import('../../lib/supabase')
+      if (supabase) {
+        const { bet_id: _drop, ...offerForDb } = offer
+        await supabase.from('offers').upsert(offerForDb, { onConflict: 'id' })
+      }
+    } catch {}
   }
 
   async function deleteOffer(id) {
@@ -136,8 +140,8 @@ export default function OfferTracker() {
     try { return isWithinInterval(parseISO(o.date), { start: startOfMonth(now), end: endOfMonth(now) }) }
     catch { return false }
   })
-
-  const shown = filterStatus === 'all' ? thisMonthOffers : thisMonthOffers.filter(o => o.status === filterStatus)
+  const displayOffers = showAllMonths ? offers : thisMonthOffers
+  const shown = filterStatus === 'all' ? displayOffers : displayOffers.filter(o => o.status === filterStatus)
 
   const totalExpected = thisMonthOffers.filter(o => o.expected_profit).reduce((s, o) => s + Number(o.expected_profit), 0)
   const totalActual = thisMonthOffers.filter(o => o.actual_profit != null && o.actual_profit !== '').reduce((s, o) => s + Number(o.actual_profit), 0)
@@ -207,6 +211,18 @@ export default function OfferTracker() {
             ))}
           </div>
 
+          {/* Show all toggle */}
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-gray-500">{shown.length} entries · £{shown.reduce((s,o) => s + (o.actual_profit != null && o.actual_profit !== '' ? Number(o.actual_profit) : 0), 0).toFixed(2)} profit</span>
+            <button
+              onClick={() => setShowAllMonths(v => !v)}
+              className="text-xs font-semibold px-3 py-1 rounded-lg"
+              style={{ background: showAllMonths ? '#C9A96E22' : '#f3f4f6', color: showAllMonths ? '#C9A96E' : '#6b7280' }}
+            >
+              {showAllMonths ? 'This month' : 'All time'}
+            </button>
+          </div>
+
           {/* Offer list */}
           <div className="space-y-2">
             {shown.length === 0 ? (
@@ -215,26 +231,41 @@ export default function OfferTracker() {
                 <button onClick={() => setShowModal(true)} className="btn-primary mt-3 text-sm">Log your first offer</button>
               </div>
             ) : (
-              shown.sort((a, b) => b.date.localeCompare(a.date)).map(offer => (
-                <div key={offer.id} className="card p-3 flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-semibold text-sm text-gray-900 dark:text-white">{getBookieName(offer.bookie_id)}</span>
-                      <StatusBadge status={offer.status} />
+              shown.sort((a, b) => (b.date || '').localeCompare(a.date || '')).map(offer => (
+                <div key={offer.id} className="card p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="font-semibold text-sm text-gray-900 dark:text-white">{getBookieName(offer.bookie_id) || '—'}</span>
+                        <StatusBadge status={offer.status} />
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{offer.offer_type} · {offer.date}</p>
+                      {offer.notes ? <p className="text-xs text-gray-400 mt-0.5 truncate">{offer.notes}</p> : null}
+                      <div className="flex gap-3 mt-1 text-xs">
+                        {offer.expected_profit ? <span className="text-gray-500">Exp: £{offer.expected_profit}</span> : null}
+                        {offer.actual_profit !== '' && offer.actual_profit != null && (
+                          <span className={Number(offer.actual_profit) >= 0 ? 'text-emerald-600 font-semibold' : 'text-red-600 font-semibold'}>
+                            £{offer.actual_profit}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{offer.offer_type} · {offer.date}</p>
-                    <div className="flex gap-3 mt-1 text-xs">
-                      {offer.expected_profit && <span className="text-gray-500">Exp: £{offer.expected_profit}</span>}
-                      {offer.actual_profit !== '' && offer.actual_profit != null && (
-                        <span className={Number(offer.actual_profit) >= 0 ? 'text-emerald-600 font-semibold' : 'text-red-600 font-semibold'}>
-                          Act: £{offer.actual_profit}
-                        </span>
-                      )}
+                    <div className="flex gap-1 flex-shrink-0 mt-0.5">
+                      <button
+                        onClick={() => { setEditOffer(offer); setShowModal(true) }}
+                        className="p-2 rounded-lg"
+                        style={{ background: 'rgba(201,169,110,0.12)', color: '#C9A96E' }}
+                      >
+                        <Pencil size={13} />
+                      </button>
+                      <button
+                        onClick={() => { if (window.confirm('Delete this entry?')) deleteOffer(offer.id) }}
+                        className="p-2 rounded-lg"
+                        style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444' }}
+                      >
+                        <Trash2 size={13} />
+                      </button>
                     </div>
-                  </div>
-                  <div className="flex gap-1 flex-shrink-0">
-                    <button onClick={() => { setEditOffer(offer); setShowModal(true) }} className="text-xs text-gold-500 font-semibold py-1 px-2">Edit</button>
-                    <button onClick={() => deleteOffer(offer.id)} className="text-xs text-red-400 py-1 px-2">✕</button>
                   </div>
                 </div>
               ))
