@@ -127,7 +127,7 @@ export async function syncFromSupabase() {
         goalStartDate: data.goal_start_date,
         consistencyGoalTarget: data.consistency_goal_target,
         consistencyGoalDays: data.consistency_goal_days,
-        incomeStreams: data.income_streams || current.incomeStreams,
+        incomeStreams: data.income_streams?.length ? data.income_streams : current.incomeStreams,
         notificationsEnabled: data.notifications_enabled,
         notificationTime: data.notification_time,
       }
@@ -142,21 +142,30 @@ export async function pushSettings() {
   if (!isConfigured()) return
   const settings = localStorage.getItem('hub_settings')
   if (!settings) return
-  try {
-    const s = JSON.parse(settings)
-    await supabase.from('user_settings').upsert({
-      id: 'default',
-      salary: s.salary,
-      default_commission: s.defaultCommission,
-      dark_mode: s.darkMode,
-      goal_start_date: s.goalStartDate,
-      consistency_goal_target: s.consistencyGoalTarget,
-      consistency_goal_days: s.consistencyGoalDays,
-      income_streams: s.incomeStreams,
-      notifications_enabled: s.notificationsEnabled,
-      notification_time: s.notificationTime,
-    })
-  } catch {}
+  const s = JSON.parse(settings)
+  const payload = {
+    id: 'default',
+    salary: s.salary ?? 0,
+    default_commission: s.defaultCommission ?? 5,
+    dark_mode: s.darkMode ?? false,
+    goal_start_date: s.goalStartDate,
+    consistency_goal_target: s.consistencyGoalTarget,
+    consistency_goal_days: s.consistencyGoalDays,
+    income_streams: s.incomeStreams ?? [],
+    notifications_enabled: s.notificationsEnabled ?? false,
+    notification_time: s.notificationTime ?? '08:00',
+  }
+  // Retry up to 3 times so a transient failure doesn't leave Supabase stale
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const { error } = await supabase.from('user_settings').upsert(payload)
+      if (!error) return
+      console.warn('[pushSettings] attempt', attempt + 1, error.message)
+    } catch (err) {
+      console.warn('[pushSettings] attempt', attempt + 1, err)
+    }
+    if (attempt < 2) await new Promise(r => setTimeout(r, 1000 * (attempt + 1)))
+  }
 }
 
 // ─── Force push: replace ALL remote data with this device's local data ───────
@@ -216,7 +225,7 @@ async function quickPollSettings() {
         goalStartDate: data.goal_start_date,
         consistencyGoalTarget: data.consistency_goal_target,
         consistencyGoalDays: data.consistency_goal_days,
-        incomeStreams: data.income_streams || current.incomeStreams,
+        incomeStreams: data.income_streams?.length ? data.income_streams : current.incomeStreams,
         notificationsEnabled: data.notifications_enabled,
         notificationTime: data.notification_time,
       }
