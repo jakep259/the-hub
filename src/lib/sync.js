@@ -118,18 +118,26 @@ export async function syncFromSupabase() {
     if (data) {
       const current = JSON.parse(localStorage.getItem('hub_settings') || '{}')
       const localUpdatedAt = current._updatedAt || 0
-      if (Date.now() - localUpdatedAt < 30000) return
+      // Short grace so the push has time to land before we read back
+      if (Date.now() - localUpdatedAt < 5000) return
+      // If local is newer than what Supabase has, local wins — don't overwrite
+      const remoteUpdatedAt = data.updated_at ? new Date(data.updated_at).getTime() : 0
+      const localIsNewer = localUpdatedAt > remoteUpdatedAt
       const merged = {
         ...current,
-        salary: current.salary,
-        defaultCommission: data.default_commission,
-        darkMode: data.dark_mode,
-        goalStartDate: data.goal_start_date,
-        consistencyGoalTarget: data.consistency_goal_target,
-        consistencyGoalDays: data.consistency_goal_days,
-        incomeStreams: current.incomeStreams,
-        notificationsEnabled: data.notifications_enabled,
-        notificationTime: data.notification_time,
+        // Salary + streams: keep local if local is newer, else use Supabase
+        salary: localIsNewer ? current.salary : (data.salary ?? current.salary),
+        incomeStreams: localIsNewer
+          ? current.incomeStreams
+          : (data.income_streams?.length ? data.income_streams : current.incomeStreams),
+        // Everything else always syncs from Supabase
+        defaultCommission: data.default_commission ?? current.defaultCommission,
+        darkMode: data.dark_mode ?? current.darkMode,
+        goalStartDate: data.goal_start_date ?? current.goalStartDate,
+        consistencyGoalTarget: data.consistency_goal_target ?? current.consistencyGoalTarget,
+        consistencyGoalDays: data.consistency_goal_days ?? current.consistencyGoalDays,
+        notificationsEnabled: data.notifications_enabled ?? current.notificationsEnabled,
+        notificationTime: data.notification_time ?? current.notificationTime,
       }
       localStorage.setItem('hub_settings', JSON.stringify(merged))
       notify('settings')
@@ -154,6 +162,8 @@ export async function pushSettings() {
     income_streams: s.incomeStreams ?? [],
     notifications_enabled: s.notificationsEnabled ?? false,
     notification_time: s.notificationTime ?? '08:00',
+    // Stamp updated_at with local save time so other devices can compare
+    updated_at: new Date(s._updatedAt || Date.now()).toISOString(),
   }
   // Retry up to 3 times so a transient failure doesn't leave Supabase stale
   for (let attempt = 0; attempt < 3; attempt++) {
@@ -216,18 +226,26 @@ async function quickPollSettings() {
     if (data) {
       const current = JSON.parse(localStorage.getItem('hub_settings') || '{}')
       const localUpdatedAt = current._updatedAt || 0
-      if (Date.now() - localUpdatedAt < 30000) return
+      // Short grace so the push has time to land before we read back
+      if (Date.now() - localUpdatedAt < 5000) return
+      // If local is newer than what Supabase has, local wins — don't overwrite
+      const remoteUpdatedAt = data.updated_at ? new Date(data.updated_at).getTime() : 0
+      const localIsNewer = localUpdatedAt > remoteUpdatedAt
       const merged = {
         ...current,
-        salary: current.salary,
-        defaultCommission: data.default_commission,
-        darkMode: data.dark_mode,
-        goalStartDate: data.goal_start_date,
-        consistencyGoalTarget: data.consistency_goal_target,
-        consistencyGoalDays: data.consistency_goal_days,
-        incomeStreams: current.incomeStreams,
-        notificationsEnabled: data.notifications_enabled,
-        notificationTime: data.notification_time,
+        // Salary + streams: keep local if local is newer, else use Supabase
+        salary: localIsNewer ? current.salary : (data.salary ?? current.salary),
+        incomeStreams: localIsNewer
+          ? current.incomeStreams
+          : (data.income_streams?.length ? data.income_streams : current.incomeStreams),
+        // Everything else always syncs from Supabase
+        defaultCommission: data.default_commission ?? current.defaultCommission,
+        darkMode: data.dark_mode ?? current.darkMode,
+        goalStartDate: data.goal_start_date ?? current.goalStartDate,
+        consistencyGoalTarget: data.consistency_goal_target ?? current.consistencyGoalTarget,
+        consistencyGoalDays: data.consistency_goal_days ?? current.consistencyGoalDays,
+        notificationsEnabled: data.notifications_enabled ?? current.notificationsEnabled,
+        notificationTime: data.notification_time ?? current.notificationTime,
       }
       localStorage.setItem('hub_settings', JSON.stringify(merged))
       notify('settings')
