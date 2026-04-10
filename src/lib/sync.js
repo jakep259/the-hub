@@ -127,7 +127,7 @@ export async function syncFromSupabase() {
         goalStartDate: data.goal_start_date,
         consistencyGoalTarget: data.consistency_goal_target,
         consistencyGoalDays: data.consistency_goal_days,
-        incomeStreams: data.income_streams?.length ? data.income_streams : current.incomeStreams,
+        incomeStreams: current.incomeStreams,
         notificationsEnabled: data.notifications_enabled,
         notificationTime: data.notification_time,
       }
@@ -225,7 +225,7 @@ async function quickPollSettings() {
         goalStartDate: data.goal_start_date,
         consistencyGoalTarget: data.consistency_goal_target,
         consistencyGoalDays: data.consistency_goal_days,
-        incomeStreams: data.income_streams?.length ? data.income_streams : current.incomeStreams,
+        incomeStreams: current.incomeStreams,
         notificationsEnabled: data.notifications_enabled,
         notificationTime: data.notification_time,
       }
