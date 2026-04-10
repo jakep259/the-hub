@@ -36,7 +36,8 @@ const SETTINGS_DEFAULTS = {
   incomeStreams: [
     { id: 'salary', label: 'Salary', fixed: true },
     { id: 'mb', label: 'Matched Betting', fixed: true },
-    { id: 'landmark', label: 'Landmark Listings', fixed: false },
+    { id: 'daily-free', label: 'Daily Free', fixed: false },
+    { id: 'usertesting', label: 'UserTesting', fixed: false },
     { id: 'other', label: 'Other', fixed: false },
   ],
   notificationsEnabled: false,

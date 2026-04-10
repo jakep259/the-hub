@@ -121,23 +121,12 @@ export async function syncFromSupabase() {
       // Short grace so the push has time to land before we read back
       if (Date.now() - localUpdatedAt < 5000) return
 
-      // Salary: keep local if it's set (>0). Only use Supabase when local is 0
-      // (e.g. fresh device). This prevents another device pushing salary:0 wiping it.
-      const salary = (current.salary > 0) ? current.salary : (data.salary ?? 0)
-
-      // Streams: merge local + remote so additions on either device propagate.
-      // Local streams always take precedence for their own ids.
-      const localStreams = current.incomeStreams || []
-      const remoteStreams = data.income_streams || []
-      const incomeStreams = [
-        ...localStreams,
-        ...remoteStreams.filter(rs => !localStreams.some(ls => ls.id === rs.id)),
-      ]
-
       const merged = {
         ...current,
-        salary,
-        incomeStreams: incomeStreams.length ? incomeStreams : localStreams,
+        // Salary: only take from Supabase when local is unset (fresh device).
+        // Prevents any device with salary:0 overwriting a real salary.
+        salary: (current.salary > 0) ? current.salary : (data.salary ?? 0),
+        // incomeStreams intentionally NOT synced — local defaults always used.
         defaultCommission: data.default_commission ?? current.defaultCommission,
         darkMode: data.dark_mode ?? current.darkMode,
         goalStartDate: data.goal_start_date ?? current.goalStartDate,
@@ -168,7 +157,8 @@ export async function pushSettings() {
     goal_start_date: s.goalStartDate,
     consistency_goal_target: s.consistencyGoalTarget,
     consistency_goal_days: s.consistencyGoalDays,
-    income_streams: s.incomeStreams ?? [],
+    // income_streams intentionally excluded — stream names are local-only.
+    // Only the actual income_entries table syncs across devices (like bets).
     notifications_enabled: s.notificationsEnabled ?? false,
     notification_time: s.notificationTime ?? '08:00',
     // Stamp updated_at with local save time so other devices can compare
@@ -238,23 +228,12 @@ async function quickPollSettings() {
       // Short grace so the push has time to land before we read back
       if (Date.now() - localUpdatedAt < 5000) return
 
-      // Salary: keep local if it's set (>0). Only use Supabase when local is 0
-      // (e.g. fresh device). This prevents another device pushing salary:0 wiping it.
-      const salary = (current.salary > 0) ? current.salary : (data.salary ?? 0)
-
-      // Streams: merge local + remote so additions on either device propagate.
-      // Local streams always take precedence for their own ids.
-      const localStreams = current.incomeStreams || []
-      const remoteStreams = data.income_streams || []
-      const incomeStreams = [
-        ...localStreams,
-        ...remoteStreams.filter(rs => !localStreams.some(ls => ls.id === rs.id)),
-      ]
-
       const merged = {
         ...current,
-        salary,
-        incomeStreams: incomeStreams.length ? incomeStreams : localStreams,
+        // Salary: only take from Supabase when local is unset (fresh device).
+        // Prevents any device with salary:0 overwriting a real salary.
+        salary: (current.salary > 0) ? current.salary : (data.salary ?? 0),
+        // incomeStreams intentionally NOT synced — local defaults always used.
         defaultCommission: data.default_commission ?? current.defaultCommission,
         darkMode: data.dark_mode ?? current.darkMode,
         goalStartDate: data.goal_start_date ?? current.goalStartDate,
