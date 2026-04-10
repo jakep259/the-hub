@@ -120,17 +120,24 @@ export async function syncFromSupabase() {
       const localUpdatedAt = current._updatedAt || 0
       // Short grace so the push has time to land before we read back
       if (Date.now() - localUpdatedAt < 5000) return
-      // If local is newer than what Supabase has, local wins — don't overwrite
-      const remoteUpdatedAt = data.updated_at ? new Date(data.updated_at).getTime() : 0
-      const localIsNewer = localUpdatedAt > remoteUpdatedAt
+
+      // Salary: keep local if it's set (>0). Only use Supabase when local is 0
+      // (e.g. fresh device). This prevents another device pushing salary:0 wiping it.
+      const salary = (current.salary > 0) ? current.salary : (data.salary ?? 0)
+
+      // Streams: merge local + remote so additions on either device propagate.
+      // Local streams always take precedence for their own ids.
+      const localStreams = current.incomeStreams || []
+      const remoteStreams = data.income_streams || []
+      const incomeStreams = [
+        ...localStreams,
+        ...remoteStreams.filter(rs => !localStreams.some(ls => ls.id === rs.id)),
+      ]
+
       const merged = {
         ...current,
-        // Salary + streams: keep local if local is newer, else use Supabase
-        salary: localIsNewer ? current.salary : (data.salary ?? current.salary),
-        incomeStreams: localIsNewer
-          ? current.incomeStreams
-          : (data.income_streams?.length ? data.income_streams : current.incomeStreams),
-        // Everything else always syncs from Supabase
+        salary,
+        incomeStreams: incomeStreams.length ? incomeStreams : localStreams,
         defaultCommission: data.default_commission ?? current.defaultCommission,
         darkMode: data.dark_mode ?? current.darkMode,
         goalStartDate: data.goal_start_date ?? current.goalStartDate,
@@ -153,7 +160,9 @@ export async function pushSettings() {
   const s = JSON.parse(settings)
   const payload = {
     id: 'default',
-    salary: s.salary ?? 0,
+    // Only push salary when it's been set — prevents a device with salary:0
+    // overwriting another device's real salary value in Supabase
+    ...(s.salary > 0 && { salary: s.salary }),
     default_commission: s.defaultCommission ?? 5,
     dark_mode: s.darkMode ?? false,
     goal_start_date: s.goalStartDate,
@@ -228,17 +237,24 @@ async function quickPollSettings() {
       const localUpdatedAt = current._updatedAt || 0
       // Short grace so the push has time to land before we read back
       if (Date.now() - localUpdatedAt < 5000) return
-      // If local is newer than what Supabase has, local wins — don't overwrite
-      const remoteUpdatedAt = data.updated_at ? new Date(data.updated_at).getTime() : 0
-      const localIsNewer = localUpdatedAt > remoteUpdatedAt
+
+      // Salary: keep local if it's set (>0). Only use Supabase when local is 0
+      // (e.g. fresh device). This prevents another device pushing salary:0 wiping it.
+      const salary = (current.salary > 0) ? current.salary : (data.salary ?? 0)
+
+      // Streams: merge local + remote so additions on either device propagate.
+      // Local streams always take precedence for their own ids.
+      const localStreams = current.incomeStreams || []
+      const remoteStreams = data.income_streams || []
+      const incomeStreams = [
+        ...localStreams,
+        ...remoteStreams.filter(rs => !localStreams.some(ls => ls.id === rs.id)),
+      ]
+
       const merged = {
         ...current,
-        // Salary + streams: keep local if local is newer, else use Supabase
-        salary: localIsNewer ? current.salary : (data.salary ?? current.salary),
-        incomeStreams: localIsNewer
-          ? current.incomeStreams
-          : (data.income_streams?.length ? data.income_streams : current.incomeStreams),
-        // Everything else always syncs from Supabase
+        salary,
+        incomeStreams: incomeStreams.length ? incomeStreams : localStreams,
         defaultCommission: data.default_commission ?? current.defaultCommission,
         darkMode: data.dark_mode ?? current.darkMode,
         goalStartDate: data.goal_start_date ?? current.goalStartDate,
