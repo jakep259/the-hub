@@ -118,7 +118,7 @@ export async function syncFromSupabase() {
     if (data) {
       const current = JSON.parse(localStorage.getItem('hub_settings') || '{}')
       const localUpdatedAt = current._updatedAt || 0
-      if (Date.now() - localUpdatedAt < 5000) return
+      if (Date.now() - localUpdatedAt < 30000) return
       const merged = {
         ...current,
         salary: data.salary,
@@ -207,7 +207,7 @@ async function quickPollSettings() {
     if (data) {
       const current = JSON.parse(localStorage.getItem('hub_settings') || '{}')
       const localUpdatedAt = current._updatedAt || 0
-      if (Date.now() - localUpdatedAt < 5000) return
+      if (Date.now() - localUpdatedAt < 30000) return
       const merged = {
         ...current,
         salary: data.salary,
