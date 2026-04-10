@@ -129,30 +129,26 @@ export default function SettingsPage() {
     }
   }
 
-  // Income streams — call saveSettings directly so changes persist to localStorage
-  // immediately, and schedulePush fires within 300ms, before the 2s quickPollSettings
-  // cycle can overwrite with stale Supabase data.
+  // Income streams — saveSettings only the streams field (partial update) so other
+  // fields like salary are always read fresh from localStorage and never overwritten
+  // by potentially stale component state. schedulePush fires within 300ms.
   function addStream() {
-    const streams = settings.incomeStreams || []
-    const newStreams = [...streams, { id: genId(), label: 'New Stream', fixed: false }]
-    const updated = { ...settings, incomeStreams: newStreams }
+    const newStreams = [...(settings.incomeStreams || []), { id: genId(), label: 'New Stream', fixed: false }]
     lastLocalSave.current = Date.now()
-    setSettings(updated)
-    saveSettings(updated)
+    setSettings(prev => ({ ...prev, incomeStreams: newStreams }))
+    saveSettings({ incomeStreams: newStreams })
   }
   function updateStream(id, label) {
     const newStreams = (settings.incomeStreams || []).map(s => s.id === id ? { ...s, label } : s)
-    const updated = { ...settings, incomeStreams: newStreams }
     lastLocalSave.current = Date.now()
-    setSettings(updated)
-    saveSettings(updated)
+    setSettings(prev => ({ ...prev, incomeStreams: newStreams }))
+    saveSettings({ incomeStreams: newStreams })
   }
   function removeStream(id) {
     const newStreams = (settings.incomeStreams || []).filter(s => s.id !== id)
-    const updated = { ...settings, incomeStreams: newStreams }
     lastLocalSave.current = Date.now()
-    setSettings(updated)
-    saveSettings(updated)
+    setSettings(prev => ({ ...prev, incomeStreams: newStreams }))
+    saveSettings({ incomeStreams: newStreams })
   }
 
   function exportAll() {
