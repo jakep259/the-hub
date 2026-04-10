@@ -46,7 +46,19 @@ const SETTINGS_DEFAULTS = {
 export function getSettings() {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY)
-    if (raw) return { ...SETTINGS_DEFAULTS, ...JSON.parse(raw) }
+    if (raw) {
+      const stored = JSON.parse(raw)
+      const streams = stored.incomeStreams || SETTINGS_DEFAULTS.incomeStreams
+      // Always ensure the two fixed streams exist — they power salary/MB totals
+      const hasSalary = streams.some(s => s.id === 'salary')
+      const hasMB = streams.some(s => s.id === 'mb')
+      const incomeStreams = [
+        ...(!hasSalary ? [{ id: 'salary', label: 'Salary', fixed: true }] : []),
+        ...(!hasMB ? [{ id: 'mb', label: 'Matched Betting', fixed: true }] : []),
+        ...streams,
+      ]
+      return { ...SETTINGS_DEFAULTS, ...stored, incomeStreams }
+    }
   } catch {}
   return { ...SETTINGS_DEFAULTS }
 }

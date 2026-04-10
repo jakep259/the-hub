@@ -170,6 +170,7 @@ function IncomeDashboard() {
   const projected = Math.round((salaryFixed + (dayOfMonth > 0 ? (varIncome / dayOfMonth) * daysInMonth : 0)) * 100) / 100
 
   // Monthly bar chart — April 2026 through December 2026
+  const salary = Number(settings.salary || 0)
   const monthlyChartData = Array.from({ length: 9 }, (_, i) => {
     const d = new Date(2026, 3 + i, 1) // Apr=3, May=4, ... Dec=11
     const start = startOfMonth(d)
@@ -177,7 +178,7 @@ function IncomeDashboard() {
     const isFuture = start > endOfMonth(now)
     if (isFuture) {
       const projVar = dayOfMonth > 0 ? (varIncome / dayOfMonth) * getDaysInMonth(d) : 0
-      return { month: format(d, 'MMM'), total: Math.round((salaryFixed + projVar) * 100) / 100, projected: true }
+      return { month: format(d, 'MMM'), total: Math.round((salary + projVar) * 100) / 100, projected: true }
     }
     const mbP = offers
       .filter(o => { if (o.actual_profit == null || o.actual_profit === '') return false; try { return isWithinInterval(parseISO(o.date), { start, end }) } catch { return false } })
@@ -185,7 +186,7 @@ function IncomeDashboard() {
     const manual = entries
       .filter(e => { try { return isWithinInterval(parseISO(e.date), { start, end }) } catch { return false } })
       .reduce((s, e) => s + Number(e.amount), 0)
-    return { month: format(d, 'MMM'), total: Math.round((salaryFixed + mbP + manual) * 100) / 100, projected: false }
+    return { month: format(d, 'MMM'), total: Math.round((salary + mbP + manual) * 100) / 100, projected: false }
   })
 
   function startEditSalary() {
