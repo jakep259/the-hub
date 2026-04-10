@@ -121,7 +121,7 @@ export async function syncFromSupabase() {
       if (Date.now() - localUpdatedAt < 30000) return
       const merged = {
         ...current,
-        salary: data.salary,
+        salary: current.salary,
         defaultCommission: data.default_commission,
         darkMode: data.dark_mode,
         goalStartDate: data.goal_start_date,
@@ -219,7 +219,7 @@ async function quickPollSettings() {
       if (Date.now() - localUpdatedAt < 30000) return
       const merged = {
         ...current,
-        salary: data.salary,
+        salary: current.salary,
         defaultCommission: data.default_commission,
         darkMode: data.dark_mode,
         goalStartDate: data.goal_start_date,
