@@ -389,6 +389,64 @@ export default function Dashboard() {
         />
       </div>
 
+      {/* ── Income breakdown ── */}
+      {(() => {
+        const streams = settings.incomeStreams || []
+        const manualStreams = streams.filter(s => !s.fixed)
+        if (salaryAmount === 0 && manualStreams.length === 0) return null
+        return (
+          <div className="card overflow-hidden">
+            <div
+              className="px-4 py-3"
+              style={{ borderBottom: `1px solid ${darkMode ? 'rgba(255,255,255,0.06)' : '#f3f4f6'}` }}
+            >
+              <p className="text-sm font-semibold" style={{ color: textPrimary }}>Income this month</p>
+            </div>
+            <div className="divide-y" style={{ borderColor: darkMode ? 'rgba(255,255,255,0.04)' : '#f9fafb' }}>
+              {salaryAmount > 0 && (
+                <IncomeStreamRow
+                  label="Salary"
+                  value={`£${salaryAmount.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                  sub="Monthly net"
+                  darkMode={darkMode}
+                  textPrimary={textPrimary}
+                  textSecondary={textSecondary}
+                />
+              )}
+              <IncomeStreamRow
+                label="Matched Betting"
+                value={`£${mbProfit.toFixed(2)}`}
+                sub="From offers this month"
+                darkMode={darkMode}
+                textPrimary={textPrimary}
+                textSecondary={textSecondary}
+                highlight={mbProfit > 0}
+              />
+              {manualStreams.map(stream => {
+                const total = entries
+                  .filter(e => {
+                    if (e.stream_id !== stream.id) return false
+                    try { return isWithinInterval(parseISO(e.date), { start: monthStart, end: monthEnd }) } catch { return false }
+                  })
+                  .reduce((s, e) => s + Number(e.amount), 0)
+                return (
+                  <IncomeStreamRow
+                    key={stream.id}
+                    label={stream.label}
+                    value={`£${total.toFixed(2)}`}
+                    sub="This month"
+                    darkMode={darkMode}
+                    textPrimary={textPrimary}
+                    textSecondary={textSecondary}
+                    highlight={total > 0}
+                  />
+                )
+              })}
+            </div>
+          </div>
+        )
+      })()}
+
       {/* ── Quick actions ── */}
       <div className="card overflow-hidden">
         <div className="px-4 py-3" style={{ borderBottom: `1px solid ${darkMode ? 'rgba(255,255,255,0.06)' : '#f3f4f6'}` }}>
@@ -441,6 +499,23 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+function IncomeStreamRow({ label, value, sub, darkMode, textPrimary, textSecondary, highlight }) {
+  return (
+    <div className="flex items-center justify-between px-4 py-3">
+      <div>
+        <p className="text-sm font-semibold" style={{ color: textPrimary }}>{label}</p>
+        <p className="text-xs mt-0.5" style={{ color: textSecondary }}>{sub}</p>
+      </div>
+      <p
+        className="text-sm font-bold"
+        style={{ color: highlight ? '#C9A96E' : textSecondary }}
+      >
+        {value}
+      </p>
     </div>
   )
 }
