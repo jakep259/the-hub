@@ -8,6 +8,7 @@
 import { useState, useEffect, useContext } from 'react'
 import { Plus, X, CheckCircle, Clock, ChevronDown, ChevronUp, Edit3 } from 'lucide-react'
 import { getList, saveList, genId } from '../../lib/store'
+import { markDeleted } from '../../lib/sync'
 import { format } from 'date-fns'
 import { DarkModeContext, SyncContext } from '../../App'
 
@@ -465,6 +466,7 @@ export default function BetTracker() {
   }
 
   async function deleteBet(id) {
+    markDeleted(id) // prevent pullTable restoring it before Supabase delete lands
     const next = (getList('open_bets') || []).filter(b => b.id !== id)
     saveList('open_bets', next)
     setBets(next)
