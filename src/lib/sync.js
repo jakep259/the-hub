@@ -57,12 +57,10 @@ async function pullTable(table, cacheKey, transform) {
           const localRow = localMap.get(remoteRow.id)
           // Keep local if settled locally and remote hasn't caught up yet
           // Only within a short grace window (30s) to avoid permanently freezing a wrong state
-          if (
-            localRow?.status === 'settled' &&
-            remoteRow.status !== 'settled' &&
-            localRow._settledAt &&
-            Date.now() - localRow._settledAt < 30000
-          ) return localRow
+          // Once settled locally, never let a pull revert it to open.
+          // The settle upsert goes directly to Supabase so this only applies
+          // during the brief window before the remote catches up.
+          if (localRow?.status === 'settled' && remoteRow.status !== 'settled') return localRow
           return remoteRow
         })
 
@@ -79,7 +77,10 @@ export async function syncToSupabase() {
   if (!isConfigured()) return
 
   const tables = [
-    'bookies', 'open_bets', 'offers', 'income_entries',
+    // open_bets intentionally excluded — each bet is pushed individually via
+    // saveBet/settle/deleteBet. Including it here causes stale copies on one
+    // device to overwrite settlements/deletions made on another device.
+    'bookies', 'offers', 'income_entries',
     'expenses', 'daily_tasks', 'task_completions',
     'weight_log', 'calorie_log',
   ]
