@@ -95,6 +95,25 @@ export async function syncToSupabase() {
     }
   }
 
+  // Push open (unsettled) bets as a safety net for cases where the direct
+  // per-bet upsert in saveBet failed. Uses ignoreDuplicates so this batch
+  // push NEVER overwrites a settled/deleted status already in Supabase —
+  // it only inserts rows that are genuinely missing from the remote.
+  if (isConfigured()) {
+    try {
+      const raw = localStorage.getItem('hub_open_bets')
+      if (raw) {
+        const rows = JSON.parse(raw)
+        const openRows = rows.filter(b => b.status === 'open').map(toDb)
+        if (openRows.length) {
+          await supabase
+            .from('open_bets')
+            .upsert(openRows, { onConflict: 'id', ignoreDuplicates: true })
+        }
+      }
+    } catch {}
+  }
+
   // Settings are pushed immediately on save via pushSettings() — skip here to
   // prevent stale local defaults overwriting another device's recent changes.
 }
@@ -125,9 +144,10 @@ export async function syncFromSupabase() {
 
       const merged = {
         ...current,
-        // Salary: only take from Supabase when local is unset (fresh device).
-        // Prevents any device with salary:0 overwriting a real salary.
-        salary: (current.salary > 0) ? current.salary : (data.salary ?? 0),
+        // Salary: Supabase is authoritative when it has a value (set by any device).
+        // This ensures setting salary on one device propagates to all others.
+        // Falls back to local only on a fresh device where Supabase has nothing yet.
+        salary: (data.salary > 0) ? data.salary : (current.salary ?? 0),
         // incomeStreams intentionally NOT synced — local defaults always used.
         defaultCommission: data.default_commission ?? current.defaultCommission,
         darkMode: data.dark_mode ?? current.darkMode,
@@ -232,9 +252,10 @@ async function quickPollSettings() {
 
       const merged = {
         ...current,
-        // Salary: only take from Supabase when local is unset (fresh device).
-        // Prevents any device with salary:0 overwriting a real salary.
-        salary: (current.salary > 0) ? current.salary : (data.salary ?? 0),
+        // Salary: Supabase is authoritative when it has a value (set by any device).
+        // This ensures setting salary on one device propagates to all others.
+        // Falls back to local only on a fresh device where Supabase has nothing yet.
+        salary: (data.salary > 0) ? data.salary : (current.salary ?? 0),
         // incomeStreams intentionally NOT synced — local defaults always used.
         defaultCommission: data.default_commission ?? current.defaultCommission,
         darkMode: data.dark_mode ?? current.darkMode,

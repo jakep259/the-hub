@@ -406,8 +406,13 @@ export default function BetTracker() {
       const { supabase } = await import('../../lib/supabase')
       if (supabase) {
         const dbRow = Object.fromEntries(Object.entries(bet).filter(([k]) => !k.startsWith('_')))
-        const { error } = await supabase.from('open_bets').upsert(dbRow, { onConflict: 'id' })
-        if (error) console.error('Save bet push failed:', error)
+        // Retry up to 3 times — must succeed before the 5s pull overwrites local
+        for (let i = 0; i < 3; i++) {
+          const { error } = await supabase.from('open_bets').upsert(dbRow, { onConflict: 'id' })
+          if (!error) break
+          console.warn('[saveBet] attempt', i + 1, error.message)
+          if (i < 2) await new Promise(r => setTimeout(r, 600 * (i + 1)))
+        }
       }
     } catch (e) { console.error('Save bet push error:', e) }
   }
@@ -422,12 +427,17 @@ export default function BetTracker() {
     setBets(next)
 
     // Push ONLY the single settled bet — strip _private fields before sending to Supabase
+    // Retry up to 3 times so the phone picks up the settled status on its next pull
     try {
       const { supabase } = await import('../../lib/supabase')
       if (supabase) {
         const dbRow = Object.fromEntries(Object.entries(settledBet).filter(([k]) => !k.startsWith('_')))
-        const { error } = await supabase.from('open_bets').upsert(dbRow, { onConflict: 'id' })
-        if (error) console.error('Settle bet push failed:', error)
+        for (let i = 0; i < 3; i++) {
+          const { error } = await supabase.from('open_bets').upsert(dbRow, { onConflict: 'id' })
+          if (!error) break
+          console.warn('[settle] attempt', i + 1, error.message)
+          if (i < 2) await new Promise(r => setTimeout(r, 600 * (i + 1)))
+        }
       }
     } catch (e) { console.error('Settle bet push error:', e) }
 
@@ -465,10 +475,19 @@ export default function BetTracker() {
   }
 
   async function deleteBet(id) {
-    // Delete from Supabase FIRST so pullTable can never restore it
+    // Delete from Supabase FIRST so pullTable can never restore it.
+    // Retry up to 3 times — if all fail, still remove locally (bet won't show here,
+    // and the ignoreDuplicates batch push won't re-insert deleted/settled bets).
     try {
       const { supabase } = await import('../../lib/supabase')
-      if (supabase) await supabase.from('open_bets').delete().eq('id', id)
+      if (supabase) {
+        for (let i = 0; i < 3; i++) {
+          const { error } = await supabase.from('open_bets').delete().eq('id', id)
+          if (!error) break
+          console.warn('[deleteBet] attempt', i + 1, error.message)
+          if (i < 2) await new Promise(r => setTimeout(r, 600 * (i + 1)))
+        }
+      }
     } catch {}
     const next = (getList('open_bets') || []).filter(b => b.id !== id)
     saveList('open_bets', next)
