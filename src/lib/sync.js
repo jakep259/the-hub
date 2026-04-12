@@ -25,14 +25,6 @@ function toDb(row) {
   )
 }
 
-// ─── Recently-deleted registry ───────────────────────────────────────────────
-// Tracks IDs deleted locally so pullTable doesn't restore them from Supabase
-// before the remote delete has had time to complete.
-const _recentlyDeleted = new Map() // id → deletedAt timestamp
-export function markDeleted(id) {
-  _recentlyDeleted.set(id, Date.now())
-  setTimeout(() => _recentlyDeleted.delete(id), 60000)
-}
 
 // ─── Generic upsert-all ───────────────────────────────────────────────────────
 async function pushTable(table, rows) {
@@ -61,11 +53,7 @@ async function pullTable(table, cacheKey, transform) {
       const local = localRaw ? JSON.parse(localRaw) : []
       const localMap = new Map(Array.isArray(local) ? local.map(r => [r.id, r]) : [])
 
-      const result = transformed
-        // Filter out rows deleted locally in the last 60s — gives time for the
-        // remote delete to complete before Supabase can restore them via pull.
-        .filter(remoteRow => !_recentlyDeleted.has(remoteRow.id))
-        .map(remoteRow => {
+      const result = transformed.map(remoteRow => {
           const localRow = localMap.get(remoteRow.id)
           // Keep local if settled locally and remote hasn't caught up yet
           // Only within a short grace window (30s) to avoid permanently freezing a wrong state
