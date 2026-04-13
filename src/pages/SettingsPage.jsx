@@ -77,6 +77,7 @@ export default function SettingsPage() {
   }, [settings])
 
   function persist() {
+    lastLocalSave.current = Date.now() // protect subscribe handler for 5s after Save
     saveSettings(settings)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
