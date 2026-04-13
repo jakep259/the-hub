@@ -137,7 +137,11 @@ function IncomeDashboard() {
          : (manualByStream[s.id] || 0),
   }))
 
-  const totalIncome = streamTotals.reduce((s, st) => s + st.total, 0)
+  // Use the raw sum of ALL manual entries so the total is never under-counted
+  // due to a stream_id mismatch (e.g. an entry logged against a stream that
+  // was later renamed or recreated with a new id).
+  const allManualTotal = monthEntries.reduce((s, e) => s + Number(e.amount), 0)
+  const totalIncome = Number(settings.salary || 0) + mbProfit + allManualTotal
 
   // Targets
   const TARGETS = [
@@ -203,19 +207,40 @@ function IncomeDashboard() {
     setEditingSalary(false)
   }
 
-  function saveEntry(e) {
+  async function saveEntry(e) {
     const existing = getList('income_entries') || []
     const idx = existing.findIndex(x => x.id === e.id)
     const next = idx >= 0 ? existing.map(x => x.id === e.id ? e : x) : [...existing, e]
     saveList('income_entries', next)
     setEntries(next)
+    // Direct push with retry — prevents the 5s pull from wiping the entry
+    // before the 300ms batch push has a chance to complete
+    try {
+      const { supabase } = await import('../lib/supabase')
+      if (supabase) {
+        for (let i = 0; i < 3; i++) {
+          const { error } = await supabase.from('income_entries').upsert(e, { onConflict: 'id' })
+          if (!error) break
+          if (i < 2) await new Promise(r => setTimeout(r, 500 * (i + 1)))
+        }
+      }
+    } catch {}
   }
 
   async function deleteEntry(id) {
     const next = (getList('income_entries') || []).filter(e => e.id !== id)
     saveList('income_entries', next)
     setEntries(next)
-    try { const { supabase } = await import('../lib/supabase'); if (supabase) await supabase.from('income_entries').delete().eq('id', id) } catch {}
+    try {
+      const { supabase } = await import('../lib/supabase')
+      if (supabase) {
+        for (let i = 0; i < 3; i++) {
+          const { error } = await supabase.from('income_entries').delete().eq('id', id)
+          if (!error) break
+          if (i < 2) await new Promise(r => setTimeout(r, 500))
+        }
+      }
+    } catch {}
   }
 
   const manualStreams = streams.filter(s => s.id !== 'salary' && s.id !== 'mb')
